@@ -47,8 +47,7 @@ if method == 1:
 
     for i in range(MaxIter):
 
-        # ---------------------------------------------------------------------------
-        # ADD YOUR CODE
+        print("leplot")
         pass  # Remove this 'pass' statement once you've added your code
 
     x = x[:, :i + 1]  # Remove the zero elements due to the initialization step
