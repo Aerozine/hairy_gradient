@@ -58,6 +58,26 @@ def linear_search(x, s, functionID, h=0.1, rho=0.5, tol=Epsilon):
     while getObjFVal(x + a*s, functionID) >= getObjFVal(x, functionID) and a > tol:
         a *= rho
     return a
+
+# Line search method 2: Newton-Raphson (117)
+
+# x, s and alpha are current iterates i in the method calling the function
+def newton_raphson(x, s, alpha, functionID, tol=Epsilon):
+    
+    def phi(alpha):
+        return getObjFVal(x + alpha * s, functionID)
+    
+    def dphi(alpha):
+        return getObjFGrad(x + alpha * s, functionID) @ s
+    
+    def ddphi(alpha):
+        return s.T @ getObjFHess(x + alpha * s, functionID) @ s
+    
+    while abs(dphi(alpha)) > tol:
+        alpha -= dphi(alpha)/ddphi(alpha)
+
+    return alpha
+
 ### Methods ###
 
 if method == 1:
@@ -75,12 +95,44 @@ if method == 1:
 elif method == 2:
 
     print("You chose the conjugate gradients method with Fletcher-Reeves update rule.")
+    
+    # Shortcut function
+    def Fgrad(x):
+        return getObjFGrad(x, functionID)
 
-    for i in range(MaxIter):
+    # Initialize parameters alpha and beta
+    alpha = np.zeros(MaxIter)
+    beta = np.zeros(MaxIter)
 
-        # ---------------------------------------------------------------------------
-        # ADD YOUR CODE
-        pass  # Remove this 'pass' statement once you've added your code
+    # Initialize search direction
+    sinit = -getObjFGrad(x[:, 0], functionID)  
+    s = np.zeros((n, MaxIter))
+    s[:, 0] = sinit
+
+    for i in range(MaxIter - 1):
+        
+        # Bingo!
+        if np.linalg.norm(Fgrad(x[:, i])) < Epsilon:
+            print("Bingo !")
+            break 
+            
+        # f2 is general C1 -> need for a Line Search method
+        """Should we implement quadratic function method ?"""
+        """Discussion with other LS methods ? """
+        alpha[i] = linear_search(x[:,i], s[:,i], functionID)
+        
+        # Update point x (108)
+        x[:, i + 1] = x[:, i] + alpha[i] * s[:,i]
+        
+        # Fletcher and Reeves update rule (109)
+        beta[i] = (np.linalg.norm(Fgrad(x[:, i + 1])) ** 2)/(np.linalg.norm(Fgrad(x[:, i])) ** 2)
+        
+        # Update search direction (109)
+        s[:, i + 1] = -Fgrad(x[:, i + 1]) + beta[i] * s[:, i]
+    
+    # If the for loop finished, MaxIter is exceeeded (otherwise break before)
+    else:
+        print("MaxIter exceeded")
 
     x = x[:, :i + 1]  # Remove the zero elements due to the initialization step
 
@@ -94,7 +146,7 @@ elif method == 3:
  # should be MaxIter-1 since initialization of x= n,MaxIter
     for k in range(MaxIter):
         # Bingo !
-        if np.linalg.norm(Fgrad) < Epsilon:
+        if np.linalg.norm(Fgrad) < Epsilon: # Fgrad est calculé en x_0, non? 
             print("Bingo !")
             break 
         # Quasi-Newton update (151)
