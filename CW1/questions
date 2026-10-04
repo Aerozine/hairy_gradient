@@ -1,3 +1,4 @@
 4/10/26: Separate cases for f1 and f2 in CG (quadratic vs general C1 with Fletcher-Reeves) ? If so, separate by functionID or criterion?
 4/10/26: For the Line Search, implement all three (four?) and compare ?
 4/10/26: Sensitivity to x0
+4/10/26: Which convergence criterion and why? 
