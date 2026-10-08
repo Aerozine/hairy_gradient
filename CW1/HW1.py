@@ -111,8 +111,11 @@ elif method == 2:
 
     for i in range(MaxIter - 1):
         
+        # Compute current gradient
+        grad_x = Fgrad(x[:, i])
+        
         # Bingo!
-        if np.linalg.norm(Fgrad(x[:, i])) < Epsilon:
+        if np.linalg.norm(grad_x) < Epsilon:
             print("Bingo !")
             break 
             
@@ -124,11 +127,14 @@ elif method == 2:
         # Update point x (108)
         x[:, i + 1] = x[:, i] + alpha[i] * s[:,i]
         
+        # Compute next iterate gradient
+        next_grad_x = Fgrad(x[:, i + 1])
+        
         # Fletcher and Reeves update rule (109)
-        beta[i] = (np.linalg.norm(Fgrad(x[:, i + 1])) ** 2)/(np.linalg.norm(Fgrad(x[:, i])) ** 2)
+        beta[i] = (np.linalg.norm(next_grad_x) ** 2)/(np.linalg.norm(grad_x) ** 2)
         
         # Update search direction (109)
-        s[:, i + 1] = -Fgrad(x[:, i + 1]) + beta[i] * s[:, i]
+        s[:, i + 1] = -next_grad_x + beta[i] * s[:, i]
     
     # If the for loop finished, MaxIter is exceeeded (otherwise break before)
     else:
@@ -146,7 +152,7 @@ elif method == 3:
  # should be MaxIter-1 since initialization of x= n,MaxIter
     for k in range(MaxIter):
         # Bingo !
-        if np.linalg.norm(Fgrad) < Epsilon: # Fgrad est calculé en x_0, non? 
+        if np.linalg.norm(Fgrad) < Epsilon: 
             print("Bingo !")
             break 
         # Quasi-Newton update (151)
