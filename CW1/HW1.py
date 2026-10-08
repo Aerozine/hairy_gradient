@@ -84,11 +84,36 @@ if method == 1:
 
     print("You chose the steepest descent method.")
 
+    grad = np.zeros((n, MaxIter))
+    alpha = np.zeros(MaxIter)
+    
     for i in range(MaxIter):
-
-        # ---------------------------------------------------------------------------
-        # ADD YOUR CODE
-        pass  # Remove this 'pass' statement once you've added your code
+        
+        #Step 1 - Already initialize
+        #i = k
+        
+        #Step 2
+        if functionID == 1 : 
+            grad[0,i] = -(10*x[0,i] - 4*x[1,i] + 8)
+            grad[1,i] = -(-4*x[0,i] + 6*x[1,i] + 7)
+            
+        if functionID == 2 : 
+            grad[0,i] = -(0.4*x[0,i] - 0.2*x[1,i] + 10.5*np.sin(0.7*x[0,i]) + 6.3*np.cos(0.7*x[0,i] - 0.6*x[1,i]) + 3)                                                       
+            grad[1,i] = -(-0.2*x[0,i] + 0.6*x[1,i] - 5.4*np.cos(0.7*x[0,i] - 0.6*x[1,i]))
+        
+        #Step 3
+        # alpha_it = np.linspace(0, 1000, 1e6)
+        # fct = getObjFVal(x[:, i] + alpha_it*grad[:,i], functionID)
+        # min_fct_alpha = np.min(fct)
+        # alpha[i] = alpha_it[fct.index(min_fct_alpha)]
+        
+        alpha[i] = linear_search(x, s, functionID, h=0.1, rho=0.5, Epsilon)
+        
+        #Step 4
+        x[:, i+1] = x[:, i] + alpha[i]*grad[:,i]
+        
+        if (alpha[i]*grad[:,i] < Epsilon) : 
+            break
 
     x = x[:, :i + 1]  # Remove the zero elements due to the initialization step
 
