@@ -107,7 +107,7 @@ if method == 1:
         # min_fct_alpha = np.min(fct)
         # alpha[i] = alpha_it[fct.index(min_fct_alpha)]
         
-        alpha[i] = linear_search(x, s, functionID, h=0.1, rho=0.5, Epsilon)
+        alpha[i] = linear_search(x, s, functionID, h=0.1, rho=0.5,tol= Epsilon)
         
         #Step 4
         x[:, i+1] = x[:, i] + alpha[i]*grad[:,i]
