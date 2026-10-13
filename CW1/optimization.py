@@ -11,35 +11,9 @@ def steepest_descent(x, n, functionID, MaxIter, Epsilon, verbose=True):
     alpha = np.zeros(MaxIter)
 
     for i in range(MaxIter - 1):  # i+1 has to stay a column of x
-
-        # Step 1 - Already initialize
-        # i = k
-
-        # Step 2
-        if functionID == 1:
-            grad[0, i] = -(10 * x[0, i] - 4 * x[1, i] + 8)
-            grad[1, i] = -(-4 * x[0, i] + 6 * x[1, i] + 7)
-
-        if functionID == 2:
-            grad[0, i] = -(
-                0.4 * x[0, i]
-                - 0.2 * x[1, i]
-                + 10.5 * np.sin(0.7 * x[0, i])
-                + 6.3 * np.cos(0.7 * x[0, i] - 0.6 * x[1, i])
-                + 3
-            )
-            grad[1, i] = -(
-                -0.2 * x[0, i]
-                + 0.6 * x[1, i]
-                - 5.4 * np.cos(0.7 * x[0, i] - 0.6 * x[1, i])
-            )
-
-        # Step 3
-        # alpha_it = np.linspace(0, 1000, 1e6)
-        # fct = getObjFVal(x[:, i] + alpha_it*grad[:,i], functionID)
-        # min_fct_alpha = np.min(fct)
-        # alpha[i] = alpha_it[fct.index(min_fct_alpha)]
-
+        print(i)
+        grad[:, i] = -getObjFGrad(x[: ,i], functionID)
+        
         # grad[:,i] already holds MINUS the gradient, i.e. the descent direction
         # Bingo !
         if np.linalg.norm(grad[:, i]) < Epsilon:
@@ -49,8 +23,12 @@ def steepest_descent(x, n, functionID, MaxIter, Epsilon, verbose=True):
 
         alpha[i] = linear_search(x[:, i], grad[:, i], functionID, Epsilon)
 
-        # Step 4
         x[:, i + 1] = x[:, i] + alpha[i] * grad[:, i]
+        
+    # If the for loop finished, MaxIter is exceeeded (otherwise break before)
+    if i == MaxIter :
+        if verbose:
+            print("MaxIter exceeded")
 
     return x[:, : i + 1]  # Remove the zero elements due to the initialization step
 
