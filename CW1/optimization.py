@@ -11,7 +11,6 @@ def steepest_descent(x, n, functionID, MaxIter, Epsilon, verbose=True):
     alpha = np.zeros(MaxIter)
 
     for i in range(MaxIter - 1):  # i+1 has to stay a column of x
-        print(i)
         grad[:, i] = -getObjFGrad(x[: ,i], functionID)
         
         # grad[:,i] already holds MINUS the gradient, i.e. the descent direction
