@@ -80,7 +80,7 @@ if __name__ == "__main__":
                     extend="both",
                 )
             ax.clabel(C, inline=True, fontsize=8, fmt="%1.1f")
-            fig.colorbar(im, ax=ax, shrink=0.85, norm="log")
+            fig.colorbar(im, ax=ax, shrink=0.85, norm="loglog")
             ax.set(xlabel="x", ylabel="y", title=metrics[k])
         fig.suptitle(f"{name} on f{functionID}")
         fig.tight_layout()
