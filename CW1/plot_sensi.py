@@ -1,41 +1,52 @@
+import functools
 import numpy as np
 from getObjFVal import *
 from optimization import *
-from linear import linear_search
+import linear
+import optimization
 import time
 import matplotlib.pyplot as plt
+
+LINE_SEARCH = "dichotomy"
+optimization.linear_search = functools.partial(linear.linear_search, method=LINE_SEARCH)
 
 
 def crit_arret(x, n, functionID, MaxIter, method, eps, crit) : 
     
-    #eps = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9, 1e-10, 1e-11, 1e-12, 1e-13, 1e-14, 1e-15]
-    nb_appel = np.zeros(len(eps))
-    time_it = np.zeros(len(eps))
+    x0 = x[:, 0].copy()
+    nb_appel = np.full(len(eps), np.nan)
+    time_it = np.full(len(eps), np.nan)
     
     for i in range(len(eps)) :
         
+        # a fresh x for every run: the methods write into the array they are
+        # given and return a view of it, so reusing one leaves stale columns
+        x = np.zeros((n, MaxIter))
+        x[:, 0] = x0
+        reset_counters()
+        
         start = time.perf_counter()
-        if method == 1:
-            steepest_descent(x, n, functionID, MaxIter, eps[i], crit,verbose=False)
-            
-        elif method == 2:
-            conjugate_gradients_Fletcher_Reeves(x, n, functionID, MaxIter, eps[i], crit,verbose=False)
-            
-        elif method == 3:
-            BFGS(x, n, functionID, MaxIter, eps[i], crit,verbose=False)
+        try:
+            if method == 1:
+                steepest_descent(x, n, functionID, MaxIter, eps[i], crit,verbose=False)
+                
+            elif method == 2:
+                conjugate_gradients_Fletcher_Reeves(x, n, functionID, MaxIter, eps[i], crit,verbose=False)
+                
+            elif method == 3:
+                BFGS(x, n, functionID, MaxIter, eps[i], crit,verbose=False)
+        except MaxIterError:
+            # no convergence for this eps -> left out of the curve
+            print(f"   {crit.__name__}: eps={eps[i]:g} hit MaxIter, point dropped")
+            continue
         end = time.perf_counter()
         
-        nb_appel[i] = getObjFVal.calls
-        reset_counters()
+        # getObjFVal is never called by crit_1/crit_2 nor by the dichotomy, so
+        # the gradient count is the one that carries the cost
+        nb_appel[i] = getObjFGrad.calls
         time_it[i] = end - start
-        
-    #print('Eps : ', eps)
-    #print('Nb_appel : ', nb_appel)
-    #print('Time_it :', time_it)
-    
     
     return nb_appel, time_it
-
 
 
 def plot_eps(x, n, functionID, MaxIter, eps, method):
@@ -44,48 +55,29 @@ def plot_eps(x, n, functionID, MaxIter, eps, method):
     nb_appel_norm, time_it_norm = crit_arret(x, n, functionID, MaxIter, method, eps, crit_2_norm)
     nb_appel_diff, time_it_diff = crit_arret(x, n, functionID, MaxIter, method, eps, crit_3_diff)
     
+    styles = (('Criterion 1 (max)', 'm', 'o'),
+              ('Criterion 2 (norm)', 'darkblue', '^'),
+              ('Criterion 3 (diff)', 'orange', 's'))
     
-    
-    #Nb iterations
-    plt.loglog(eps, nb_appel_max, color = 'm', label ='Criterion 1')
-    plt.loglog(eps, nb_appel_norm, color = 'darkblue', label = 'Criterion 2')
-    plt.loglog(eps, nb_appel_diff, color = 'orange', label ='Criterion 3')
-    plt.scatter(eps, nb_appel_max, color = 'm', marker = 'o')
-    plt.scatter(eps, nb_appel_norm, color = 'darkblue', marker = '^')
-    plt.scatter(eps, nb_appel_diff, color = 'orange', marker = 's')
-    plt.xlabel('Stopping criteria [-]', fontsize = 13)
-    plt.ylabel('Number of iterations [-]', fontsize = 13)
-    #plt.tick_params(axis = 'both', labelsize=12)
-    #plt.xlim([100,110])
-    #plt.ylim([0,300])
-    plt.grid()
-    plt.legend()
-    plt.gca().invert_xaxis()
-    plt.savefig('img/nb_it_method.pdf', bbox_inches='tight', dpi=300)
-    #plt.show()
-    
-    #Time
-    plt.loglog(eps, time_it_max, color = 'm', label ='Criterion 1')
-    plt.loglog(eps, time_it_norm, color = 'darkblue', label = 'Criterion 2')
-    plt.loglog(eps, time_it_diff, color = 'orange', label ='Criterion 3')
-    plt.scatter(eps, time_it_max, color = 'm', marker = 'o')
-    plt.scatter(eps, time_it_norm, color = 'darkblue', marker = '^')
-    plt.scatter(eps, time_it_diff, color = 'orange', marker = 's')
-    plt.xlabel('Stopping criteria [-]', fontsize = 13)
-    plt.ylabel('Time [s]', fontsize = 13)
-    plt.gca().invert_xaxis()
-    #plt.tick_params(axis = 'both', labelsize=12)
-    #plt.xlim([100,110])
-    #plt.ylim([0,300])
-    plt.grid()
-    plt.legend()
-    plt.savefig('img/time_method.pdf', bbox_inches='tight', dpi=300)
-    #plt.show()
-    
+    for values, ylabel, filename in (
+        ((nb_appel_max, nb_appel_norm, nb_appel_diff),
+         'getObjFGrad calls [-]', 'img/nb_it_method.pdf'),
+        ((time_it_max, time_it_norm, time_it_diff),
+         'Time [s]', 'img/time_method.pdf'),
+    ):
+        # a figure of its own: without it both plots land on the same axes and
+        # the second file holds all six curves
+        plt.figure()
+        for v, (label, color, marker) in zip(values, styles):
+            plt.loglog(eps, v, color=color, label=label, marker=marker)
+        plt.xlabel('Tolerance eps [-]', fontsize = 13)
+        plt.ylabel(ylabel, fontsize = 13)
+        plt.grid()
+        plt.legend()
+        plt.gca().invert_xaxis()  # once per figure, twice cancels out
+        plt.savefig(filename, bbox_inches='tight', dpi=300)
     
     return
-
-
 
 
 '''
