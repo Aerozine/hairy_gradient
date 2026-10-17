@@ -8,7 +8,7 @@ Created on Fri Oct 16 14:28:56 2026
 
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.ticker import MaxNLocator
+from matplotlib.ticker import MaxNLocator, MultipleLocator
 from getObjFVal import *
 from optimization import *
 
@@ -80,6 +80,9 @@ if __name__ == "__main__":
         ax.legend()
         
         if cut != None:
-            ax.set_xlim(1,cut)
-        
+            ax.set_xlim(right=cut)
+            
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+        ax.xaxis.set_major_locator(MultipleLocator(1))
+        
+        
