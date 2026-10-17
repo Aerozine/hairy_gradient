@@ -38,13 +38,16 @@ def steepest_descent(x, n, functionID, MaxIter, Epsilon,criterion = crit_2_norm,
     for k in range(MaxIter - 1):  # k+1 has to stay a column of x
         grad[:, k] = -getObjFGrad(x[: ,k], functionID)
         # grad[:,i] already holds MINUS the gradient, i.e. the descent direction
-        if criterion == crit_3_diff:    
-            f_k = getObjFVal(x[:, k - 1], functionID)
+        if criterion == crit_3_diff:
+            # |f(x^k) - f(x^k-1)| needs two iterates, so it cannot be evaluated
+            # at k = 0: x[:, -1] is the last (still empty) column, not x^-1.
+            # f_k is kept from the previous pass instead of recomputed.
             f_kp1 = getObjFVal(x[:, k], functionID)
-            if criterion(f_k, f_kp1, grad[:,k-1], grad[:,k]) < Epsilon:
+            if k > 0 and criterion(f_k, f_kp1, grad[:,k-1], grad[:,k]) < Epsilon:
                 if verbose:
                     print("Bingo !")
                 break
+            f_k = f_kp1
         else:
             if criterion(0,0, grad[:,k-1], grad[:,k]) < Epsilon:
                 if verbose:
@@ -68,7 +71,7 @@ def steepest_descent(x, n, functionID, MaxIter, Epsilon,criterion = crit_2_norm,
 # 2) Conjugate gradients with Fletcher-Reeves update rule
 # restart = 0 -> no re-initialization, restart = n -> the course's rule (110)
 def conjugate_gradients_Fletcher_Reeves(
-    x, n, functionID, MaxIter, Epsilon,criterion = crit_2_norm, restart=0, verbose=True
+    x, n, functionID, MaxIter, Epsilon,criterion = crit_2_norm, restart=3, verbose=True
 ):
     if verbose:
         print(
@@ -96,13 +99,16 @@ def conjugate_gradients_Fletcher_Reeves(
         grad[:,i] = grad_x 
         
         k = i
-        if criterion == crit_3_diff:    
-            f_k = getObjFVal(x[:, k - 1], functionID) 
+        if criterion == crit_3_diff:
+            # |f(x^k) - f(x^k-1)| needs two iterates, so it cannot be evaluated
+            # at k = 0: x[:, -1] is the last (still empty) column, not x^-1.
+            # f_k is kept from the previous pass instead of recomputed.
             f_kp1 = getObjFVal(x[:, k], functionID)
-            if criterion(f_k, f_kp1, grad[:,k-1], grad[:,k]) < Epsilon:
+            if k > 0 and criterion(f_k, f_kp1, grad[:,k-1], grad[:,k]) < Epsilon:
                 if verbose:
                     print("Bingo !")
                 break
+            f_k = f_kp1
         else:
             if criterion(0,0, grad[:,k-1], grad[:,k]) < Epsilon:
                 if verbose:
@@ -156,13 +162,16 @@ def BFGS(x, n, functionID, MaxIter, Epsilon,criterion = crit_2_norm, restart=0, 
     for k in range(MaxIter - 1):
         grad[:,k] = Fgrad
         
-        if criterion == crit_3_diff:    
-            f_k = getObjFVal(x[:, k - 1], functionID) 
+        if criterion == crit_3_diff:
+            # |f(x^k) - f(x^k-1)| needs two iterates, so it cannot be evaluated
+            # at k = 0: x[:, -1] is the last (still empty) column, not x^-1.
+            # f_k is kept from the previous pass instead of recomputed.
             f_kp1 = getObjFVal(x[:, k], functionID)
-            if criterion(f_k, f_kp1, grad[:,k-1], grad[:,k]) < Epsilon:
+            if k > 0 and criterion(f_k, f_kp1, grad[:,k-1], grad[:,k]) < Epsilon:
                 if verbose:
                     print("Bingo !")
                 break
+            f_k = f_kp1
         else:
             if criterion(0,0, grad[:,k-1], grad[:,k]) < Epsilon:
                 if verbose:

@@ -19,7 +19,8 @@ optimization.linear_search = functools.partial(linear.linear_search, method=LINE
 
 MaxIter = 300
 Epsilon = 1e-5
-N = 8  # N x N grid of starting points in the domain [-15, 15]^2
+lb, up = -15, 15  # the domain of the statement
+N = 8  # N x N grid of starting points in [lb, up]^2
 RESTARTS = [1, 2, 3, 4, 5, 6, 8, 10]  # p = 1 -> steepest descent for CG
 CRITERION = crit_2_norm
 
@@ -28,11 +29,10 @@ methods = {
     "BFGS": BFGS,
 }
 
-# categorical slots, fixed order, validated for colour-vision deficiency
-styles = {
-    "getObjFVal": dict(color="blue", marker="o"),
-    "getObjFGrad": dict(color="red", marker="s"),
-}
+# only getObjFGrad is counted: crit_2_norm (61) and the dichotomy (125-127) use
+# the gradient only, so the getObjFVal count was entirely produced by the back
+# search of linear.py, which is not part of the course
+style = dict(color="red", marker="s")
 
 plt.rcParams.update({
     "font.family": "sans-serif",
@@ -50,10 +50,10 @@ plt.rcParams.update({
 })
 
 
-# median number of calls over the grid of starting points, for one setting
+# mean number of gradient calls over the grid of starting points, for one setting
 def sweep(method, functionID, restart):
-    xi = np.linspace(-14, 14, N)
-    fcalls, gcalls, failed = [], [], 0
+    xi = np.linspace(lb, up, N)
+    gcalls, failed = [], 0
 
     for x0 in ((a, b) for a in xi for b in xi):
         reset_counters()
@@ -65,15 +65,14 @@ def sweep(method, functionID, restart):
         except MaxIterError:  # stopped at MaxIter, not a converged result
             failed += 1
             continue
-        fcalls.append(getObjFVal.calls)
         gcalls.append(getObjFGrad.calls)
 
-    # a setting is only reported when EVERY starting point converged: a median
+    # a setting is only reported when EVERY starting point converged: a mean
     # taken over the subset that did converge would be measured on an easier
     # problem than the other points, so it is dropped instead of plotted
-    if failed or not fcalls:
-        return np.nan, np.nan, failed
-    return np.median(fcalls), np.median(gcalls), failed
+    if failed or not gcalls:
+        return np.nan, failed
+    return np.mean(gcalls), failed
 
 
 if __name__ == "__main__":
@@ -86,33 +85,31 @@ if __name__ == "__main__":
             method = methods[name]
 
             # reference: the method as it is, without re-initialization
-            base_f, base_g, base_fail = sweep(method, functionID, 0)
+            base, base_fail = sweep(method, functionID, 0)
 
             # then every restart period
-            data = [sweep(method, functionID, p) for p in RESTARTS]
+            values, fails = zip(*[sweep(method, functionID, p) for p in RESTARTS])
 
-            for key, values, base in (
-                ("getObjFVal", [d[0] for d in data], base_f),
-                ("getObjFGrad", [d[1] for d in data], base_g),
-            ):
-                ax.plot(RESTARTS, values, label=f"{key} calls", **styles[key])
-                if np.isfinite(base):  # no baseline when it did not converge
-                    ax.axhline(base, color=styles[key]["color"], linestyle="--",
-                               linewidth=1.5, alpha=0.7)
+            ax.plot(RESTARTS, values, label="with re-initialization", **style)
+            if np.isfinite(base):  # dropped when some starting point diverged
+                ax.axhline(base, color=style["color"], linestyle="--",
+                           linewidth=1.5, alpha=0.7, label="no re-initialization")
+            else:
+                print(f"f{functionID} {name}: no restart -> "
+                      f"{base_fail}/{N * N} starting points hit MaxIter, point dropped")
 
-            ax.set_yscale("log")
             ax.set_title(f"{name} on f{functionID}")
-            ax.grid(True, which="both", alpha=0.35)
+            ax.grid(True, alpha=0.35)
             if row == 1:
                 ax.set_xlabel("re-initialization period p [iterations]")
             if col == 0:
-                ax.set_ylabel("calls, median over starting points [-]")
+                ax.set_ylabel("getObjFGrad calls (mean) [-]")
 
-    handles, labels = axes[0, 0].get_legend_handles_labels()
-    handles.append(plt.Line2D([], [],linestyle="--", linewidth=1.5))
-    labels.append("no re-initialization")
-    fig.legend(handles, labels, loc="lower center", ncol=3, frameon=False,
-               bbox_to_anchor=(0.5, 0.0))
+    handles = [plt.Line2D([], [], **style), 
+               plt.Line2D([], [], color=style["color"], linestyle="--",
+                          linewidth=1.5, alpha=0.7)]
+    fig.legend(handles, ["with re-initialization", "no re-initialization"],
+               loc="lower center", ncol=2, frameon=False, bbox_to_anchor=(0.5, 0.0))
     fig.suptitle(f"Effect of the periodic re-initialization (line search: {LINE_SEARCH})")
     fig.tight_layout(rect=(0, 0.05, 1, 0.97))
     fig.savefig("img/reinit.pdf", bbox_inches="tight")

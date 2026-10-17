@@ -73,5 +73,5 @@ if __name__ == "__main__":
             
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         ax.xaxis.set_major_locator(MultipleLocator(1))
-        
+    plt.show()
         

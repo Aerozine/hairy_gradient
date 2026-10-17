@@ -26,10 +26,6 @@ def dichotomy(
         a = amax - rho * (amax - amin)
         amin, amax = (a, amax) if dphi(a) < 0 else (amin, a)
     a = amax - rho * (amax - amin)
-    # phi not necessary unimodal, shrink required (140)
-    # f2 is not convex
-    while getObjFVal(x + a * s, functionID) >= getObjFVal(x, functionID) and a > tol:
-        a *= rho
     return a
 
 
