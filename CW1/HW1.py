@@ -32,7 +32,6 @@ x[:, 0] = xinit[:, 0]  # Put xinit in vector x.
 ### Methods ###
 if method == 1:
     x = steepest_descent(x, n, functionID, MaxIter, Epsilon)
-    print(getObjFVal.history)
 elif method == 2:
     x = conjugate_gradients_Fletcher_Reeves(x, n, functionID, MaxIter, Epsilon)
 elif method == 3:
