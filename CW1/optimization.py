@@ -2,39 +2,78 @@ import numpy as np
 from getObjFVal import *
 from linear import linear_search
 
+#p61
+def crit_1_max(f_k, f_kp1, grad_k, grad_kp1):
+    
+    crit = np.max(np.abs(grad_kp1)) 
+    
+    return crit
 
-def steepest_descent(x, n, functionID, MaxIter, Epsilon, verbose=True):
+def crit_2_norm(f_k, f_kp1, grad_k, grad_kp1):
+    
+    crit = np.linalg.norm(grad_kp1) #mettre k+1 ???
+    
+    return crit
+
+def crit_3_diff(f_k, f_kp1, grad_k, grad_kp1):
+    
+    crit = np.abs(f_kp1-f_k)
+
+    return crit
+
+
+
+def steepest_descent(x, n, functionID, MaxIter, Epsilon,criterion = crit_2_norm, verbose=True):
     if verbose:
         print("You chose the steepest descent method.")
 
     grad = np.zeros((n, MaxIter))
     alpha = np.zeros(MaxIter)
 
-    for i in range(MaxIter - 1):  # i+1 has to stay a column of x
-        grad[:, i] = -getObjFGrad(x[: ,i], functionID)
+    for k in range(MaxIter - 1):  # k+1 has to stay a column of x
+        grad[:, k] = -getObjFGrad(x[: ,k], functionID)
         
         # grad[:,i] already holds MINUS the gradient, i.e. the descent direction
         # Bingo !
-        if np.linalg.norm(grad[:, i]) < Epsilon:
+        '''
+        if criterion(_,_, grad[:,k-1], grad[:,k]) < Epsilon:
             if verbose:
                 print("Bingo !")
-            break
+                break
+        # black magic artifact allowing us to dont pollute 
+        # the number of call of the objective function inside the call
+        '''
+        
+        if criterion == crit_3_diff:    
+            f_k = getObjFVal(x[:, k - 1], functionID)   #maitre loic est content ?
+            f_kp1 = getObjFVal(x[:, k], functionID)
+            if criterion(f_k, f_kp1, grad[:,k-1], grad[:,k]) < Epsilon:
+                if verbose:
+                    print("Bingo !")
+                    break
+        else:
+            if criterion(0,0, grad[:,k-1], grad[:,k]) < Epsilon:
+                if verbose:
+                    print("Bingo !")
+                    break
+        
+        
+        
+        alpha[k] = linear_search(x[:, k], grad[:, k], functionID, Epsilon)
 
-        alpha[i] = linear_search(x[:, i], grad[:, i], functionID, Epsilon)
-
-        x[:, i + 1] = x[:, i] + alpha[i] * grad[:, i]
+        x[:, k + 1] = x[:, k] + alpha[k] * grad[:, k]
         
     # If the for loop finished, MaxIter is exceeeded (otherwise break before)
-    if i == MaxIter :
+    if k == MaxIter :
         if verbose:
             print("MaxIter exceeded")
 
-    return x[:, : i + 1]  # Remove the zero elements due to the initialization step
+    return x[:, : k + 1]  # Remove the zero elements due to the initialization step
 
 
 # 2) Conjugate gradients with Fletcher-Reeves update rule
 def conjugate_gradients_Fletcher_Reeves(
-    x, n, functionID, MaxIter, Epsilon, verbose=True
+    x, n, functionID, MaxIter, Epsilon,criterion = crit_2_norm, verbose=True
 ):
     if verbose:
         print(
@@ -53,17 +92,34 @@ def conjugate_gradients_Fletcher_Reeves(
     sinit = -getObjFGrad(x[:, 0], functionID)
     s = np.zeros((n, MaxIter))
     s[:, 0] = sinit
+    grad = np.zeros((n, MaxIter))
 
     for i in range(MaxIter - 1):
 
         # Compute current gradient
         grad_x = Fgrad(x[:, i])
-
+        grad[:,i] = grad_x 
+        
+        '''
         # Bingo!
         if np.linalg.norm(grad_x) < Epsilon:
             if verbose:
                 print("Bingo !")
             break
+        '''
+        k = i
+        if criterion == crit_3_diff:    
+            f_k = getObjFVal(x[:, k - 1], functionID)   #maitre loic est content ?
+            f_kp1 = getObjFVal(x[:, k], functionID)
+            if criterion(f_k, f_kp1, grad[:,k-1], grad[:,k]) < Epsilon:
+                if verbose:
+                    print("Bingo !")
+                    break
+        else:
+            if criterion(0,0, grad[:,k-1], grad[:,k]) < Epsilon:
+                if verbose:
+                    print("Bingo !")
+                    break
 
         # f2 is general C1 -> need for a Line Search method
         """Should we implement quadratic function method ?"""
@@ -90,9 +146,11 @@ def conjugate_gradients_Fletcher_Reeves(
 
 
 # 3) BFGS Quasi-Newton
-def BFGS(x, n, functionID, MaxIter, Epsilon, verbose=True):
+def BFGS(x, n, functionID, MaxIter, Epsilon,criterion = crit_2_norm, verbose=True):
     if verbose:
         print("You chose the BFGS Quasi-Newton method.")
+        
+    grad = np.zeros((n, MaxIter))
 
     H = np.eye(n)  # guess from 162
     # should we put a "nice" value from default for this one ?
@@ -101,10 +159,28 @@ def BFGS(x, n, functionID, MaxIter, Epsilon, verbose=True):
     # should be MaxIter-1 since initialization of x= n,MaxIter
     for k in range(MaxIter - 1):
         # Bingo !
+        '''
         if np.linalg.norm(Fgrad) < Epsilon:
             if verbose:
                 print("Bingo !")
             break
+        '''
+        grad[:,k] = Fgrad
+        
+        if criterion == crit_3_diff:    
+            f_k = getObjFVal(x[:, k - 1], functionID)   #maitre loic est content ?
+            f_kp1 = getObjFVal(x[:, k], functionID)
+            if criterion(f_k, f_kp1, grad[:,k-1], grad[:,k]) < Epsilon:
+                if verbose:
+                    print("Bingo !")
+                    break
+        else:
+            if criterion(0,0, grad[:,k-1], grad[:,k]) < Epsilon:
+                if verbose:
+                    print("Bingo !")
+                    break
+        
+        
         # Quasi-Newton update (151)
         s = -H @ Fgrad
         a = linear_search(x[:, k], s, functionID, Epsilon)

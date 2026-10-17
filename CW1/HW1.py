@@ -13,7 +13,7 @@ from plotOptimizationPath import plotOptimizationPath
 functionID = 1
 xinit = np.array([0, 0])  # initial point
 MaxIter = 100  # Maximum number of iterations
-Epsilon = 1e-15  # Tolerance for the stop criteria
+Epsilon = 1e-5  # Tolerance for the stop criteria
 
 ### Initialization ###
 
@@ -31,12 +31,12 @@ x[:, 0] = xinit[:, 0]  # Put xinit in vector x.
 
 ### Methods ###
 if method == 1:
-    x = steepest_descent(x, n, functionID, MaxIter, Epsilon)
+    x = steepest_descent(x, n, functionID, MaxIter, Epsilon, criterion = crit_2_norm, verbose=True)
     print(f"Les fougeres c'est le must ! {getObjFVal.calls}")
 elif method == 2:
-    x = conjugate_gradients_Fletcher_Reeves(x, n, functionID, MaxIter, Epsilon)
+    x = conjugate_gradients_Fletcher_Reeves(x, n, functionID, MaxIter, Epsilon, criterion = crit_2_norm, verbose=True)
 elif method == 3:
-    x = BFGS(x, n, functionID, MaxIter, Epsilon)
+    x = BFGS(x, n, functionID, MaxIter, Epsilon, criterion = crit_2_norm, verbose=True)
 # Plot the function with the optimization path and the results
 
 print(f"The optimal point is: x = {x[0, -1]:.5f}, y = {x[1, -1]:.5f}.")

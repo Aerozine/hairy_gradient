@@ -8,7 +8,7 @@ from getObjFVal import *
 from optimization import *
 
 # based on plotOptimizationPath
-functionID = 2
+functionID = 1
 lb, up = -15, 15
 N = 80
 MaxIter = 300
