@@ -1,10 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Oct 16 14:28:56 2026
-
-@author: antoinedlbck
-"""
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -32,11 +26,6 @@ plt.rcParams.update({
 "lines.markersize": 10
 })
 
-methods = {
-    "Steepest descent": steepest_descent,
-    "Conjugate gradients": conjugate_gradients_Fletcher_Reeves,
-    "BFGS": BFGS,
-}
 
 styles = {
     "Steepest descent":    dict(color="C0", linestyle="-",  marker="o"),

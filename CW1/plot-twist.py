@@ -8,18 +8,11 @@ from getObjFVal import *
 from optimization import *
 
 # based on plotOptimizationPath
-functionID = 2
+functionID = 1
 lb, up = -15, 15
 N = 80
 MaxIter = 300
 Epsilon = 1e-5
-
-# mapping from name to function name basically
-methods = {
-    "Steepest descent": steepest_descent,
-    "Conjugate gradients": conjugate_gradients_Fletcher_Reeves,
-    "BFGS": BFGS,
-}
 
 metrics = ["Iterations", "getObjFVal calls", "getObjFGrad calls", "getObjFHess calls"]
 
