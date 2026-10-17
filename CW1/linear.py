@@ -32,11 +32,10 @@ def dichotomy(
 # Line search method 2: Newton-Raphson (117)
 
 
-# h and rho are ignored, the method starts from alpha = 0 as in the course
-def newton_raphson(x, s, functionID, tol=1e-5, h=0.1, rho=0.5, alpha=0.0):
-
-    def phi(alpha):
-        return getObjFVal(x + alpha * s, functionID)
+# x, s and alpha are current iterates i in the method calling the function
+# h and rho are only used by the dichotomy fallback, alpha starts at 0 (114)
+def newton_raphson(x, s, functionID, tol=1e-5, h=0.1, rho=0.5, alpha=0.0,
+                   MaxIter=100):
 
     def dphi(alpha):
         return getObjFGrad(x + alpha * s, functionID) @ s
@@ -44,10 +43,26 @@ def newton_raphson(x, s, functionID, tol=1e-5, h=0.1, rho=0.5, alpha=0.0):
     def ddphi(alpha):
         return s.T @ getObjFHess(x + alpha * s, functionID) @ s
 
-    while abs(dphi(alpha)) > tol:
-        alpha -= dphi(alpha) / ddphi(alpha)
+    for _ in range(MaxIter):
+        # optimality condition of the line search, phi'(alpha) = 0 (115)
+        d1 = dphi(alpha)
+        if abs(d1) <= tol:
+            return alpha
 
-    return alpha
+        # the solution of phi'(alpha) = 0 is a minimum only when phi'' > 0 (119)
+        curvature = ddphi(alpha)
+        if curvature <= 0:
+            return dichotomy(x, s, functionID, tol, h, rho)
+
+        # iteration of the method (117)
+        alpha -= d1 / curvature
+
+        # the line search has to work with a positivity constraint (114)
+        if alpha <= 0:
+            return dichotomy(x, s, functionID, tol, h, rho)
+
+    # the global convergence of the method is not guaranteed (120)
+    return dichotomy(x, s, functionID, tol, h, rho)
 
 
 def quadratic(x, s, functionID, tol=1e-5, h=0.1, rho=0.5, MaxIter=100):

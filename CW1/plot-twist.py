@@ -12,11 +12,7 @@ import optimization
 from getObjFVal import *
 from optimization import *
 
-# the default line search of linear.py is newton-raphson, which has no iteration
-# cap and can return a negative alpha on f2 -> pin an explicit one here. this is
-# module level on purpose, so that the worker processes inherit it too.
-LINE_SEARCH = "dichotomy"
-optimization.linear_search = functools.partial(linear.linear_search, method=LINE_SEARCH)
+optimization.linear_search = functools.partial(linear.linear_search)
 
 # based on plotOptimizationPath
 FUNCTIONS = (1, 2)

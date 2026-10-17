@@ -7,8 +7,7 @@ import optimization
 import time
 import matplotlib.pyplot as plt
 
-LINE_SEARCH = "dichotomy"
-optimization.linear_search = functools.partial(linear.linear_search, method=LINE_SEARCH)
+optimization.linear_search = functools.partial(linear.linear_search)
 
 
 def crit_arret(x, n, functionID, MaxIter, method, eps, crit) : 

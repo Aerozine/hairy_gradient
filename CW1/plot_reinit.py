@@ -1,21 +1,18 @@
 #!/usr/bin/env python3
 
-import functools
+import inspect
 
 import numpy as np
 import matplotlib.pyplot as plt
 
-import linear
-import optimization
-from getObjFVal import getObjFVal, getObjFGrad, reset_counters
+from getObjFVal import getObjFGrad, reset_counters
+from linear import linear_search
 from optimization import (conjugate_gradients_Fletcher_Reeves, BFGS,
                           crit_2_norm, MaxIterError)
 
-# the default line search of linear.py is newton-raphson, which has no iteration
-# cap and can return a negative alpha on f2 -> pin an explicit one here so that
-# the figure measures the restart and not the line search
-LINE_SEARCH = "dichotomy"
-optimization.linear_search = functools.partial(linear.linear_search, method=LINE_SEARCH)
+# the methods call linear_search without naming a method, so the figure is made
+# with whichever one linear.py has as its default. read it, only to label it.
+LINE_SEARCH = inspect.signature(linear_search).parameters["method"].default
 
 MaxIter = 300
 Epsilon = 1e-5
@@ -50,7 +47,7 @@ plt.rcParams.update({
 })
 
 
-# mean number of gradient calls over the grid of starting points, for one setting
+# mean, min and max number of gradient calls over the grid of starting points
 def sweep(method, functionID, restart):
     xi = np.linspace(lb, up, N)
     gcalls, failed = [], 0
@@ -71,8 +68,9 @@ def sweep(method, functionID, restart):
     # taken over the subset that did converge would be measured on an easier
     # problem than the other points, so it is dropped instead of plotted
     if failed or not gcalls:
-        return np.nan, failed
-    return np.mean(gcalls), failed
+        return np.nan, np.nan, np.nan, failed
+    g = np.array(gcalls, float)
+    return g.mean(), g.min(), g.max(), failed
 
 
 if __name__ == "__main__":
@@ -85,13 +83,19 @@ if __name__ == "__main__":
             method = methods[name]
 
             # reference: the method as it is, without re-initialization
-            base, base_fail = sweep(method, functionID, 0)
+            base, base_lo, base_hi, base_fail = sweep(method, functionID, 0)
 
             # then every restart period
-            values, fails = zip(*[sweep(method, functionID, p) for p in RESTARTS])
+            mean, lo, hi, fails = (np.array(v, float) for v in
+                                   zip(*[sweep(method, functionID, p)
+                                         for p in RESTARTS]))
 
-            ax.plot(RESTARTS, values, label="with re-initialization", **style)
+            # the bar spans the cheapest and the dearest starting point, the
+            # marker is the mean over all of them
+            ax.errorbar(RESTARTS, mean, yerr=[mean - lo, hi - mean],
+                        capsize=4, label="with re-initialization", **style)
             if np.isfinite(base):  # dropped when some starting point diverged
+                ax.axhspan(base_lo, base_hi, color=style["color"], alpha=0.10)
                 ax.axhline(base, color=style["color"], linestyle="--",
                            linewidth=1.5, alpha=0.7, label="no re-initialization")
             else:
@@ -103,13 +107,16 @@ if __name__ == "__main__":
             if row == 1:
                 ax.set_xlabel("re-initialization period p [iterations]")
             if col == 0:
-                ax.set_ylabel("getObjFGrad calls (mean) [-]")
+                ax.set_ylabel("getObjFGrad calls [-]")
 
     handles = [plt.Line2D([], [], **style), 
                plt.Line2D([], [], color=style["color"], linestyle="--",
                           linewidth=1.5, alpha=0.7)]
     fig.legend(handles, ["with re-initialization", "no re-initialization"],
                loc="lower center", ncol=2, frameon=False, bbox_to_anchor=(0.5, 0.0))
-    fig.suptitle(f"Effect of the periodic re-initialization (line search: {LINE_SEARCH})")
+    fig.suptitle(f"Effect of the periodic re-initialization "
+                 f"(line search: {LINE_SEARCH})\n"
+                 f"marker = mean over the {N}x{N} starting points, "
+                 f"bar = min to max")
     fig.tight_layout(rect=(0, 0.05, 1, 0.97))
     fig.savefig("img/reinit.pdf", bbox_inches="tight")
