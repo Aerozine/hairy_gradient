@@ -19,10 +19,10 @@ def plotOptimizationPath(x, functionID, method, export_fig=False):
         for j in range(len(xi)):
             f[j, i] = getObjFVal([xi[i], xi[j]], functionID)
 
-    plt.figure(figsize=(10, 8))
-    plt.title("Optimization Path and Contour Plot")
-    plt.xlabel("x_1")
-    plt.ylabel("x_2")
+    plt.figure()
+    #plt.title("Optimization Path and Contour Plot")
+    plt.xlabel("x")
+    plt.ylabel("y")
     plt.axis([lb, up, lb, up])
     plt.axis("square")
 
@@ -94,6 +94,6 @@ def plotOptimizationPath(x, functionID, method, export_fig=False):
     if export_fig:
         start_point = x[:, 0]
         method_name = method_names[method]
-        plt.savefig(f"pathPlots/path_{method_name}_x0({start_point[0]}_{start_point[1]}).pdf", dpi=300)
+        plt.savefig(f"pathPlots/path_{method_name}_x0({start_point[0]}_{start_point[1]}).pdf", dpi=300, bbox_inches="tight")
 
     plt.show()
