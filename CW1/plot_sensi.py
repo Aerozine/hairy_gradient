@@ -12,9 +12,6 @@ optimization.linear_search = functools.partial(linear.linear_search)
 
 def crit_arret(x, n, functionID, MaxIter, method, eps, crit) : 
     
-    #eps = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9, 1e-10, 1e-11, 1e-12, 1e-13, 1e-14, 1e-15]
-    nb_appel = np.zeros(len(eps))
-    time_it = np.zeros(len(eps))
     nb_it = np.zeros(len(eps))
     x_rep = np.zeros((n, MaxIter))
     x0 = x[:, 0].copy()
@@ -32,13 +29,13 @@ def crit_arret(x, n, functionID, MaxIter, method, eps, crit) :
         start = time.perf_counter()
         try:
             if method == 1:
-                steepest_descent(x, n, functionID, MaxIter, eps[i], crit,verbose=False)
+                x_rep = steepest_descent(x, n, functionID, MaxIter, eps[i], crit,verbose=False)
                 
             elif method == 2:
-                conjugate_gradients_Fletcher_Reeves(x, n, functionID, MaxIter, eps[i], crit,verbose=False)
+                x_rep = conjugate_gradients_Fletcher_Reeves(x, n, functionID, MaxIter, eps[i], crit,verbose=False)
                 
             elif method == 3:
-                BFGS(x, n, functionID, MaxIter, eps[i], crit,verbose=False)
+                x_rep = BFGS(x, n, functionID, MaxIter, eps[i], crit,verbose=False)
         except MaxIterError:
             # no convergence for this eps -> left out of the curve
             print(f"   {crit.__name__}: eps={eps[i]:g} hit MaxIter, point dropped")
@@ -47,6 +44,7 @@ def crit_arret(x, n, functionID, MaxIter, method, eps, crit) :
         
         # getObjFVal is never called by crit_1/crit_2 nor by the dichotomy, so
         # the gradient count is the one that carries the cost
+        nb_it[i] = x_rep.shape[1]
         nb_appel[i] = getObjFGrad.calls
         time_it[i] = end - start
     
@@ -55,9 +53,9 @@ def crit_arret(x, n, functionID, MaxIter, method, eps, crit) :
 
 def plot_eps(x, n, functionID, MaxIter, eps, method):
     
-    nb_appel_max, time_it_max = crit_arret(x, n, functionID, MaxIter, method, eps, crit_1_max)
-    nb_appel_norm, time_it_norm = crit_arret(x, n, functionID, MaxIter, method, eps, crit_2_norm)
-    nb_appel_diff, time_it_diff = crit_arret(x, n, functionID, MaxIter, method, eps, crit_3_diff)
+    nb_appel_max, nb_it_max, time_it_max = crit_arret(x, n, functionID, MaxIter, method, eps, crit_1_max)
+    nb_appel_norm, nb_it_norm, time_it_norm = crit_arret(x, n, functionID, MaxIter, method, eps, crit_2_norm)
+    nb_appel_diff, nb_it_diff, time_it_diff = crit_arret(x, n, functionID, MaxIter, method, eps, crit_3_diff)
     
     styles = (('Criterion 1 (max)', 'm', 'o'),
               ('Criterion 2 (norm)', 'darkblue', '^'),
@@ -65,7 +63,9 @@ def plot_eps(x, n, functionID, MaxIter, eps, method):
     
     for values, ylabel, filename in (
         ((nb_appel_max, nb_appel_norm, nb_appel_diff),
-         'getObjFGrad calls [-]', 'img/nb_it_method.pdf'),
+         'getObjFGrad calls [-]', 'img/nb_calls_method.pdf'),
+        ((nb_it_max, nb_it_norm, nb_it_diff),
+         'Number of iterations [-]', 'img/nb_it_method.pdf'),
         ((time_it_max, time_it_norm, time_it_diff),
          'Time [s]', 'img/time_method.pdf'),
     ):
@@ -139,7 +139,7 @@ def plot_eps(x, n, functionID, MaxIter, eps, method):
 
 if __name__== '__main__':
     
-    functionID = 2
+    functionID = 1
     method = 1
     eps = [10**-i for i in range(1,10)]
     #eps = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5 , 1e-6, 1e-7, 1e-8, 1e-9, 1e-10, 1e-11, 1e-12, 1e-13, 1e-14, 1e-15, 1e-16]
