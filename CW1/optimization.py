@@ -11,7 +11,7 @@ def crit_1_max(f_k, f_kp1, grad_k, grad_kp1):
 
 def crit_2_norm(f_k, f_kp1, grad_k, grad_kp1):
     
-    crit = np.linalg.norm(grad_kp1) #mettre k+1 ???
+    crit = np.dot(grad_kp1, grad_kp1) #mettre k+1 ???
     
     return crit
 

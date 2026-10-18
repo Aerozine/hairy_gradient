@@ -12,51 +12,59 @@ def crit_arret(x, n, functionID, MaxIter, method, eps, crit) :
     #eps = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9, 1e-10, 1e-11, 1e-12, 1e-13, 1e-14, 1e-15]
     nb_appel = np.zeros(len(eps))
     time_it = np.zeros(len(eps))
+    nb_it = np.zeros(len(eps))
+    x_rep = np.zeros((n, MaxIter))
     
     for i in range(len(eps)) :
         
         start = time.perf_counter()
         if method == 1:
-            steepest_descent(x, n, functionID, MaxIter, eps[i], crit)
+            x_rep = steepest_descent(x, n, functionID, MaxIter, eps[i], crit)
             #print(f"Les fougeres c'est le must ! {getObjFVal.calls}")
             
         elif method == 2:
-            conjugate_gradients_Fletcher_Reeves(x, n, functionID, MaxIter, eps[i], crit)
+            x_rep = conjugate_gradients_Fletcher_Reeves(x, n, functionID, MaxIter, eps[i], crit)
             
         elif method == 3:
-            BFGS(x, n, functionID, MaxIter, eps[i], crit)
+            x_rep = BFGS(x, n, functionID, MaxIter, eps[i], crit)
         end = time.perf_counter()
         
-        nb_appel[i] = getObjFVal.calls
+        nb_it[i] = x_rep.shape[1]
+        nb_appel[i] = getObjFGrad.calls
         reset_counters()
         time_it[i] = end - start
         
-    print(f"Les fougeres c'est le must !")
-    print('Eps : ', eps)
-    print('Nb_appel : ', nb_appel)
-    print('Time_it :', time_it)
+    #print(f"Les fougeres c'est le must !")
+    #print('Eps : ', eps)
+    #print('Nb_appel : ', nb_appel)
+    #print('Nb_it : ', nb_it)
+    #print(x_rep)
+    #print('Time_it :', time_it)
     
     
-    return nb_appel, time_it
+    return nb_appel, nb_it, time_it
 
 
 
 def plot_eps(x, n, functionID, MaxIter, eps, method):
     
-    nb_appel_max, time_it_max = crit_arret(x, n, functionID, MaxIter, method, eps, crit_1_max)
-    nb_appel_norm, time_it_norm = crit_arret(x, n, functionID, MaxIter, method, eps, crit_2_norm)
-    nb_appel_diff, time_it_diff = crit_arret(x, n, functionID, MaxIter, method, eps, crit_3_diff)
+    nb_appel_max, nb_it_max, time_it_max = crit_arret(x, n, functionID, MaxIter, method, eps, crit_1_max)
+    nb_appel_norm, nb_it_norm, time_it_norm = crit_arret(x, n, functionID, MaxIter, method, eps, crit_2_norm)
+    nb_appel_diff, nb_it_diff,time_it_diff = crit_arret(x, n, functionID, MaxIter, method, eps, crit_3_diff)
     
-    
+    val_lig = nb_it_diff[0] + nb_it_diff[0]*0.01
     
     #Nb iterations
-    plt.loglog(eps, nb_appel_max, color = 'm', label ='Criterion 1')
-    plt.loglog(eps, nb_appel_norm, color = 'darkblue', label = 'Criterion 2')
-    plt.loglog(eps, nb_appel_diff, color = 'orange', label ='Criterion 3')
-    plt.scatter(eps, nb_appel_max, color = 'm', marker = 'o')
-    plt.scatter(eps, nb_appel_norm, color = 'darkblue', marker = '^')
-    plt.scatter(eps, nb_appel_diff, color = 'orange', marker = 's')
-    plt.xlabel('Stopping criteria [-]', fontsize = 13)
+    plt.semilogx(eps, nb_it_max, color = 'm', label ='Criterion 1 (max)')
+    plt.semilogx(eps, nb_it_norm, color = 'darkblue', label = 'Criterion 2 (norm)')
+    plt.semilogx(eps, nb_it_diff, color = 'orange', label ='Criterion 3 (diff)')
+    
+    plt.axhline(val_lig, color="red", linestyle="--", label=r"$\varepsilon$ = 0.01%")
+    
+    plt.scatter(eps, nb_it_max, color = 'm', marker = 'o')
+    plt.scatter(eps, nb_it_norm, color = 'darkblue', marker = '^')
+    plt.scatter(eps, nb_it_diff, color = 'orange', marker = 's')
+    plt.xlabel('Tolerance $\\varepsilon$ [-]', fontsize = 13)
     plt.ylabel('Number of iterations [-]', fontsize = 13)
     #plt.tick_params(axis = 'both', labelsize=12)
     #plt.xlim([100,110])
@@ -64,17 +72,40 @@ def plot_eps(x, n, functionID, MaxIter, eps, method):
     plt.grid()
     plt.legend()
     plt.gca().invert_xaxis()
-    #plt.savefig('nb_it_method.pdf', bbox_inches='tight', dpi=300)
+    #plt.savefig('2_BFGS_nb_appel_method.pdf', bbox_inches='tight', dpi=300)
     plt.show()
     
+    
+    #Nb appel
+    plt.loglog(eps, nb_appel_max, color = 'm', label ='Criterion 1 (max)')
+    plt.loglog(eps, nb_appel_norm, color = 'darkblue', label = 'Criterion 2 (norm)')
+    plt.loglog(eps, nb_appel_diff, color = 'orange', label ='Criterion 3 (diff)')
+    
+    #plt.axhline(val_lig, color="red", linestyle="--", label=r"$\varepsilon$ = 0.1%")
+    
+    plt.scatter(eps, nb_appel_max, color = 'm', marker = 'o')
+    plt.scatter(eps, nb_appel_norm, color = 'darkblue', marker = '^')
+    plt.scatter(eps, nb_appel_diff, color = 'orange', marker = 's')
+    plt.xlabel('Tolerance $\\varepsilon$ [-]', fontsize = 13)
+    plt.ylabel('Number of getObjFGrad calls [-]', fontsize = 13)
+    #plt.tick_params(axis = 'both', labelsize=12)
+    #plt.xlim([100,110])
+    #plt.ylim([0,300])
+    plt.grid()
+    plt.legend()
+    plt.gca().invert_xaxis()
+    #plt.savefig('2_BFGS_nb_appel_method.pdf', bbox_inches='tight', dpi=300)
+    plt.show()
+    
+    
     #Time
-    plt.loglog(eps, time_it_max, color = 'm', label ='Criterion 1')
-    plt.loglog(eps, time_it_norm, color = 'darkblue', label = 'Criterion 2')
-    plt.loglog(eps, time_it_diff, color = 'orange', label ='Criterion 3')
+    plt.loglog(eps, time_it_max, color = 'm', label ='Criterion 1 (max)')
+    plt.loglog(eps, time_it_norm, color = 'darkblue', label = 'Criterion 2 (norm)')
+    plt.loglog(eps, time_it_diff, color = 'orange', label ='Criterion 3 (diff)')
     plt.scatter(eps, time_it_max, color = 'm', marker = 'o')
     plt.scatter(eps, time_it_norm, color = 'darkblue', marker = '^')
     plt.scatter(eps, time_it_diff, color = 'orange', marker = 's')
-    plt.xlabel('Stopping criteria [-]', fontsize = 13)
+    plt.xlabel('Tolerance $\\varepsilon$ [-]', fontsize = 13)
     plt.ylabel('Time [s]', fontsize = 13)
     plt.gca().invert_xaxis()
     #plt.tick_params(axis = 'both', labelsize=12)
@@ -147,7 +178,7 @@ def plot_eps(x, n, functionID, MaxIter, eps, method):
 if __name__== '__main__':
     
     functionID = 2
-    method = 3
+    method = 1
     eps = [10**-i for i in range(1,10)]
     #eps = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5 , 1e-6, 1e-7, 1e-8, 1e-9, 1e-10, 1e-11, 1e-12, 1e-13, 1e-14, 1e-15, 1e-16]
 
@@ -159,7 +190,7 @@ if __name__== '__main__':
     x[:, 0] = xinit[:, 0]  # Put xinit in vector x.
     
     
-    #crit_arret(x, n, functionID, MaxIter, method, eps)
+    #crit_arret(x, n, functionID, MaxIter, method, eps, crit_2_norm)
     
     plot_eps(x, n, functionID, MaxIter, eps, method)
 

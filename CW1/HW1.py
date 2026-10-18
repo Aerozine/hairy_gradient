@@ -10,7 +10,7 @@ from optimization import *
 from getObjFVal import getObjFVal, getObjFGrad, getObjFHess
 from plotOptimizationPath import plotOptimizationPath
 
-functionID = 1
+functionID = 2
 xinit = np.array([0, 0])  # initial point
 MaxIter = 100  # Maximum number of iterations
 Epsilon = 1e-5  # Tolerance for the stop criteria
