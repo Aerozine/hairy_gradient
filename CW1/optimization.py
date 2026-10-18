@@ -8,25 +8,33 @@ class MaxIterError(RuntimeError):
 
 
 #p61
-def crit_1_max(f_k, f_kp1, grad_k, grad_kp1):
+def crit_1_max(f_k, f_kp1, grad_k, grad_kp1,Epsilon):
     
     crit = np.max(np.abs(grad_kp1)) 
     
-    return crit
+    return crit < Epsilon
 
-def crit_2_norm(f_k, f_kp1, grad_k, grad_kp1):
+def crit_2_norm(f_k, f_kp1, grad_k, grad_kp1,Epsilon):
     # returns the square root not the 
     #crit = np.linalg.norm(grad_kp1) 
     crit = np.dot(grad_kp1,grad_kp1)
-    return crit
+    return crit < Epsilon
 
-def crit_3_diff(f_k, f_kp1, grad_k, grad_kp1):
+def crit_3_diff(f_k, f_kp1, grad_k, grad_kp1,Epsilon):
     
     crit = np.abs(f_kp1-f_k)
 
-    return crit
+    return crit < Epsilon
+
+def crit_1_3(f_k, f_kp1, grad_k, grad_kp1,Epsilon):
+    return crit_3_diff(f_k, f_kp1, grad_k, grad_kp1,Epsilon) and crit_1_max(f_k, f_kp1, grad_k, grad_kp1,Epsilon)
+def crit_2_3(f_k, f_kp1, grad_k, grad_kp1,Epsilon):
+    return crit_2_norm(f_k, f_kp1, grad_k, grad_kp1,Epsilon) and crit_3_diff(f_k, f_kp1, grad_k, grad_kp1,Epsilon)
 
 
+# the criteria built on |f(x^k) - f(x^k-1)| need the objective value of the
+# previous iterate; the purely gradient-based ones are given 0, 0 instead
+NEEDS_FVAL = (crit_3_diff, crit_1_3, crit_2_3)
 
 def steepest_descent(x, n, functionID, MaxIter, Epsilon,criterion = crit_2_norm, verbose=True):
     if verbose:
@@ -38,18 +46,18 @@ def steepest_descent(x, n, functionID, MaxIter, Epsilon,criterion = crit_2_norm,
     for k in range(MaxIter - 1):  # k+1 has to stay a column of x
         grad[:, k] = -getObjFGrad(x[: ,k], functionID)
         # grad[:,i] already holds MINUS the gradient, i.e. the descent direction
-        if criterion == crit_3_diff:
+        if criterion in NEEDS_FVAL:
             # |f(x^k) - f(x^k-1)| needs two iterates, so it cannot be evaluated
             # at k = 0: x[:, -1] is the last (still empty) column, not x^-1.
             # f_k is kept from the previous pass instead of recomputed.
             f_kp1 = getObjFVal(x[:, k], functionID)
-            if k > 0 and criterion(f_k, f_kp1, grad[:,k-1], grad[:,k]) < Epsilon:
+            if k > 0 and criterion(f_k, f_kp1, grad[:,k-1], grad[:,k],Epsilon):
                 if verbose:
                     print("Bingo !")
                 break
             f_k = f_kp1
         else:
-            if criterion(0,0, grad[:,k-1], grad[:,k]) < Epsilon:
+            if criterion(0,0, grad[:,k-1], grad[:,k], Epsilon):
                 if verbose:
                     print("Bingo !")
                 break
@@ -99,18 +107,18 @@ def conjugate_gradients_Fletcher_Reeves(
         grad[:,i] = grad_x 
         
         k = i
-        if criterion == crit_3_diff:
+        if criterion in NEEDS_FVAL:
             # |f(x^k) - f(x^k-1)| needs two iterates, so it cannot be evaluated
             # at k = 0: x[:, -1] is the last (still empty) column, not x^-1.
             # f_k is kept from the previous pass instead of recomputed.
             f_kp1 = getObjFVal(x[:, k], functionID)
-            if k > 0 and criterion(f_k, f_kp1, grad[:,k-1], grad[:,k]) < Epsilon:
+            if k > 0 and criterion(f_k, f_kp1, grad[:,k-1], grad[:,k],Epsilon):
                 if verbose:
                     print("Bingo !")
                 break
             f_k = f_kp1
         else:
-            if criterion(0,0, grad[:,k-1], grad[:,k]) < Epsilon:
+            if criterion(0,0, grad[:,k-1], grad[:,k], Epsilon):
                 if verbose:
                     print("Bingo !")
                 break
@@ -162,18 +170,18 @@ def BFGS(x, n, functionID, MaxIter, Epsilon,criterion = crit_2_norm, restart=0, 
     for k in range(MaxIter - 1):
         grad[:,k] = Fgrad
         
-        if criterion == crit_3_diff:
+        if criterion in NEEDS_FVAL:
             # |f(x^k) - f(x^k-1)| needs two iterates, so it cannot be evaluated
             # at k = 0: x[:, -1] is the last (still empty) column, not x^-1.
             # f_k is kept from the previous pass instead of recomputed.
             f_kp1 = getObjFVal(x[:, k], functionID)
-            if k > 0 and criterion(f_k, f_kp1, grad[:,k-1], grad[:,k]) < Epsilon:
+            if k > 0 and criterion(f_k, f_kp1, grad[:,k-1], grad[:,k],Epsilon):
                 if verbose:
                     print("Bingo !")
                 break
             f_k = f_kp1
         else:
-            if criterion(0,0, grad[:,k-1], grad[:,k]) < Epsilon:
+            if criterion(0,0, grad[:,k-1], grad[:,k],Epsilon):
                 if verbose:
                     print("Bingo !")
                 break

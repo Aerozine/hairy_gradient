@@ -1,5 +1,5 @@
 # because paralellism is fun
-import functools
+import inspect
 from concurrent.futures import ProcessPoolExecutor
 
 import numpy as np
@@ -7,12 +7,13 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from matplotlib.ticker import NullFormatter, ScalarFormatter
 
-import linear
-import optimization
 from getObjFVal import *
+from linear import linear_search
 from optimization import *
 
-optimization.linear_search = functools.partial(linear.linear_search)
+# the methods call linear_search without naming a method, so the figure is made
+# with whichever one linear.py has as its default. read it, only to label it.
+LINE_SEARCH = inspect.signature(linear_search).parameters["method"].default
 
 # based on plotOptimizationPath
 FUNCTIONS = (1, 2)
@@ -31,6 +32,15 @@ plt.rcParams.update({
     "axes.labelsize": 13,
     "savefig.format": "pdf",
 })
+
+
+# the methods are called without naming restart, so each one runs with its own
+# default: say which, the figure compares them side by side
+def reinit_label(method):
+    p = inspect.signature(method).parameters.get("restart")
+    if p is None:
+        return "no re-initialization"
+    return f"re-init every {p.default} it." if p.default else "no re-initialization"
 
 
 # one point job: take a position, a function and a name, execute the algo
@@ -97,7 +107,7 @@ if __name__ == "__main__":
                 ax.clabel(C, inline=True, fontsize=7, fmt="%.0f")
 
                 if row == 0:
-                    ax.set_title(name)
+                    ax.set_title(f"{name}\n{reinit_label(methods[name])}")
                 if row == len(metrics) - 1:
                     ax.set_xlabel("x")
                 if col == 0:

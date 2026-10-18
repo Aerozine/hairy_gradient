@@ -1,4 +1,3 @@
-import numpy as np
 from getObjFVal import getObjFVal, getObjFGrad, getObjFHess
 
 
@@ -156,7 +155,7 @@ linear_methods = {
 }
 
 
-def linear_search(x, s, functionID, tol, h=0.1, rho=0.5, method="newton-raphson"):
+def linear_search(x, s, functionID, tol, h=0.1, rho=0.5, method="dichotomy"):
     # fancy way to call the function of the name of method
     search = method if callable(method) else linear_methods.get(method)
     if search is None:
