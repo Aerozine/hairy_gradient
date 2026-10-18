@@ -2,8 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from getObjFVal import getObjFVal
 
+method_names = {
+    1: "Steepest descent",
+    2: "Conjugate gradients",
+    3: "BFGS",
+}
 
-def plotOptimizationPath(x, functionID):
+def plotOptimizationPath(x, functionID, method, export_fig=False):
 
     lb = -15
     up = 15
@@ -83,5 +88,12 @@ def plotOptimizationPath(x, functionID):
         verticalalignment="center",
         fontsize=8,
     )
+    
+    plt.tight_layout()
+    
+    if export_fig:
+        start_point = x[:, 0]
+        method_name = method_names[method]
+        plt.savefig(f"pathPlots/path_{method_name}_x0({start_point[0]}_{start_point[1]}).pdf", dpi=300)
 
     plt.show()

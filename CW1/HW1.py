@@ -10,8 +10,10 @@ from optimization import *
 from getObjFVal import getObjFVal, getObjFGrad, getObjFHess
 from plotOptimizationPath import plotOptimizationPath
 
+export_fig = True # Export the optimization path (or not) in the (../pathPlots/) dir
+
 functionID = 1
-xinit = np.array([0, 0])  # initial point
+xinit = np.array([-2.5, -14])  # initial point
 MaxIter = 100  # Maximum number of iterations
 Epsilon = 1e-5  # Tolerance for the stop criteria
 
@@ -40,4 +42,4 @@ elif method == 3:
 
 print(f"The optimal point is: x = {x[0, -1]:.5f}, y = {x[1, -1]:.5f}.")
 print(f"The objective function value is: {getObjFVal(x[:, -1], functionID):.5f}.")
-plotOptimizationPath(x, functionID)
+plotOptimizationPath(x, functionID, method, export_fig)
