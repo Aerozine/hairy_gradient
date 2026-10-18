@@ -2,6 +2,11 @@ import numpy as np
 from getObjFVal import *
 from linear import linear_search
 
+#basically create an error called MaxIter so the code stop and we can identify it 
+class MaxIterError(RuntimeError):
+    pass
+
+
 #p61
 def crit_1_max(f_k, f_kp1, grad_k, grad_kp1):
     
@@ -10,9 +15,9 @@ def crit_1_max(f_k, f_kp1, grad_k, grad_kp1):
     return crit
 
 def crit_2_norm(f_k, f_kp1, grad_k, grad_kp1):
-    
-    crit = np.dot(grad_kp1, grad_kp1) #mettre k+1 ???
-    
+    # returns the square root not the 
+    #crit = np.linalg.norm(grad_kp1) 
+    crit = np.dot(grad_kp1,grad_kp1)
     return crit
 
 def crit_3_diff(f_k, f_kp1, grad_k, grad_kp1):
@@ -32,48 +37,41 @@ def steepest_descent(x, n, functionID, MaxIter, Epsilon,criterion = crit_2_norm,
 
     for k in range(MaxIter - 1):  # k+1 has to stay a column of x
         grad[:, k] = -getObjFGrad(x[: ,k], functionID)
-        
         # grad[:,i] already holds MINUS the gradient, i.e. the descent direction
-        # Bingo !
-        '''
-        if criterion(_,_, grad[:,k-1], grad[:,k]) < Epsilon:
-            if verbose:
-                print("Bingo !")
-                break
-        # black magic artifact allowing us to dont pollute 
-        # the number of call of the objective function inside the call
-        '''
-        
-        if criterion == crit_3_diff:    
-            f_k = getObjFVal(x[:, k - 1], functionID)   #maitre loic est content ?
+        if criterion == crit_3_diff:
+            # |f(x^k) - f(x^k-1)| needs two iterates, so it cannot be evaluated
+            # at k = 0: x[:, -1] is the last (still empty) column, not x^-1.
+            # f_k is kept from the previous pass instead of recomputed.
             f_kp1 = getObjFVal(x[:, k], functionID)
-            if criterion(f_k, f_kp1, grad[:,k-1], grad[:,k]) < Epsilon:
+            if k > 0 and criterion(f_k, f_kp1, grad[:,k-1], grad[:,k]) < Epsilon:
                 if verbose:
                     print("Bingo !")
-                    break
+                break
+            f_k = f_kp1
         else:
             if criterion(0,0, grad[:,k-1], grad[:,k]) < Epsilon:
                 if verbose:
                     print("Bingo !")
-                    break
-        
-        
-        
+                break
         alpha[k] = linear_search(x[:, k], grad[:, k], functionID, Epsilon)
 
         x[:, k + 1] = x[:, k] + alpha[k] * grad[:, k]
-        
+
     # If the for loop finished, MaxIter is exceeeded (otherwise break before)
-    if k == MaxIter :
-        if verbose:
-            print("MaxIter exceeded")
+    else:
+        raise MaxIterError(
+            f"steepest descent: MaxIter = {MaxIter} reached without satisfying "
+            f"{criterion.__name__} < {Epsilon:g}, last ||grad|| = "
+            f"{np.linalg.norm(grad[:, k]):.3e}"
+        )
 
     return x[:, : k + 1]  # Remove the zero elements due to the initialization step
 
 
 # 2) Conjugate gradients with Fletcher-Reeves update rule
+# restart = 0 -> no re-initialization, restart = n -> the course's rule (110)
 def conjugate_gradients_Fletcher_Reeves(
-    x, n, functionID, MaxIter, Epsilon,criterion = crit_2_norm, verbose=True
+    x, n, functionID, MaxIter, Epsilon,criterion = crit_2_norm, restart=3, verbose=True
 ):
     if verbose:
         print(
@@ -100,30 +98,30 @@ def conjugate_gradients_Fletcher_Reeves(
         grad_x = Fgrad(x[:, i])
         grad[:,i] = grad_x 
         
-        '''
-        # Bingo!
-        if np.linalg.norm(grad_x) < Epsilon:
-            if verbose:
-                print("Bingo !")
-            break
-        '''
         k = i
-        if criterion == crit_3_diff:    
-            f_k = getObjFVal(x[:, k - 1], functionID)   #maitre loic est content ?
+        if criterion == crit_3_diff:
+            # |f(x^k) - f(x^k-1)| needs two iterates, so it cannot be evaluated
+            # at k = 0: x[:, -1] is the last (still empty) column, not x^-1.
+            # f_k is kept from the previous pass instead of recomputed.
             f_kp1 = getObjFVal(x[:, k], functionID)
-            if criterion(f_k, f_kp1, grad[:,k-1], grad[:,k]) < Epsilon:
+            if k > 0 and criterion(f_k, f_kp1, grad[:,k-1], grad[:,k]) < Epsilon:
                 if verbose:
                     print("Bingo !")
-                    break
+                break
+            f_k = f_kp1
         else:
             if criterion(0,0, grad[:,k-1], grad[:,k]) < Epsilon:
                 if verbose:
                     print("Bingo !")
-                    break
+                break
+
+        # FUNDAMENTAL REMARK (110)
+        # the global convergence is submitted to a periodic re-initialization
+        # -> after n iterations, go on from x^n with the direction -grad f(x^n)
+        if restart and i > 0 and i % restart == 0:
+            s[:, i] = -grad_x
 
         # f2 is general C1 -> need for a Line Search method
-        """Should we implement quadratic function method ?"""
-        """Discussion with other LS methods ? """
         alpha[i] = linear_search(x[:, i], s[:, i], functionID, Epsilon)
 
         # Update point x (108)
@@ -140,13 +138,17 @@ def conjugate_gradients_Fletcher_Reeves(
 
     # If the for loop finished, MaxIter is exceeeded (otherwise break before)
     else:
-        if verbose:
-            print("MaxIter exceeded")
+        raise MaxIterError(
+            f"conjugate gradients: MaxIter = {MaxIter} reached without satisfying "
+            f"{criterion.__name__} < {Epsilon:g}, last ||grad|| = "
+            f"{np.linalg.norm(grad[:, i]):.3e}"
+        )
     return x[:, : i + 1]  # Remove the zero elements due to the initialization step
 
 
 # 3) BFGS Quasi-Newton
-def BFGS(x, n, functionID, MaxIter, Epsilon,criterion = crit_2_norm, verbose=True):
+# restart = 0 -> no re-initialization, restart = n -> the course's rule (162)
+def BFGS(x, n, functionID, MaxIter, Epsilon,criterion = crit_2_norm, restart=0, verbose=True):
     if verbose:
         print("You chose the BFGS Quasi-Newton method.")
         
@@ -158,29 +160,30 @@ def BFGS(x, n, functionID, MaxIter, Epsilon,criterion = crit_2_norm, verbose=Tru
 
     # should be MaxIter-1 since initialization of x= n,MaxIter
     for k in range(MaxIter - 1):
-        # Bingo !
-        '''
-        if np.linalg.norm(Fgrad) < Epsilon:
-            if verbose:
-                print("Bingo !")
-            break
-        '''
         grad[:,k] = Fgrad
         
-        if criterion == crit_3_diff:    
-            f_k = getObjFVal(x[:, k - 1], functionID)   #maitre loic est content ?
+        if criterion == crit_3_diff:
+            # |f(x^k) - f(x^k-1)| needs two iterates, so it cannot be evaluated
+            # at k = 0: x[:, -1] is the last (still empty) column, not x^-1.
+            # f_k is kept from the previous pass instead of recomputed.
             f_kp1 = getObjFVal(x[:, k], functionID)
-            if criterion(f_k, f_kp1, grad[:,k-1], grad[:,k]) < Epsilon:
+            if k > 0 and criterion(f_k, f_kp1, grad[:,k-1], grad[:,k]) < Epsilon:
                 if verbose:
                     print("Bingo !")
-                    break
+                break
+            f_k = f_kp1
         else:
             if criterion(0,0, grad[:,k-1], grad[:,k]) < Epsilon:
                 if verbose:
                     print("Bingo !")
-                    break
+                break
         
         
+        # periodic re-initialization (162)
+        # -> after n iterations, starting from x^n, go on with H = I
+        if restart and k > 0 and k % restart == 0:
+            H = np.eye(n)
+
         # Quasi-Newton update (151)
         s = -H @ Fgrad
         a = linear_search(x[:, k], s, functionID, Epsilon)
@@ -203,4 +206,20 @@ def BFGS(x, n, functionID, MaxIter, Epsilon,criterion = crit_2_norm, verbose=Tru
                 - (np.outer(delta, Hg) + np.outer(Hg, delta)) / dg
             )
         Fgrad = Fgrad_new
+
+    # If the for loop finished, MaxIter is exceeeded (otherwise break before)
+    else:
+        raise MaxIterError(
+            f"BFGS: MaxIter = {MaxIter} reached without satisfying "
+            f"{criterion.__name__} < {Epsilon:g}, last ||grad|| = "
+            f"{np.linalg.norm(Fgrad):.3e}"
+        )
+
     return x[:, : k + 1]  # Remove the zero elements due to the initialization step
+
+# mapping from name to function name basically
+methods = {
+    "Steepest descent": steepest_descent,
+    "Conjugate gradients": conjugate_gradients_Fletcher_Reeves,
+    "BFGS": BFGS,
+}

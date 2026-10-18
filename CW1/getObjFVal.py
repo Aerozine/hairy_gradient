@@ -7,15 +7,21 @@ import numpy as np
 def counted(f):  # takes a function and replace it by another
     def wrapper(*args, **kwargs):  # our new function is wrapper
         wrapper.calls += 1  # increase an atribute called calls
-        return f(*args, **kwargs)  # and will return the result of the fonction
+        u= f(*args,**kwargs)
+        wrapper.history.append(u)
+        return u # and will return the result of the fonction
 
     wrapper.calls = 0  # at start calls =0
+    wrapper.history = list()  # at start calls =0
     wrapper.__name__ = f.__name__  # the name is the same
     return wrapper  # replace the function by the new one
 
 
 def reset_counters():
     getObjFVal.calls = getObjFGrad.calls = getObjFHess.calls = 0
+    getObjFVal.history=list()
+    getObjFGrad.history=list()
+    getObjFHess.history=list()
 
 
 @counted

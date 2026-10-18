@@ -31,12 +31,11 @@ x[:, 0] = xinit[:, 0]  # Put xinit in vector x.
 
 ### Methods ###
 if method == 1:
-    x = steepest_descent(x, n, functionID, MaxIter, Epsilon, criterion = crit_2_norm, verbose=True)
-    print(f"Les fougeres c'est le must ! {getObjFVal.calls}")
+    x = steepest_descent(x, n, functionID, MaxIter, Epsilon, verbose=True)
 elif method == 2:
-    x = conjugate_gradients_Fletcher_Reeves(x, n, functionID, MaxIter, Epsilon, criterion = crit_2_norm, verbose=True)
+    x = conjugate_gradients_Fletcher_Reeves(x, n, functionID, MaxIter, Epsilon, verbose=True)
 elif method == 3:
-    x = BFGS(x, n, functionID, MaxIter, Epsilon, criterion = crit_2_norm, verbose=True)
+    x = BFGS(x, n, functionID, MaxIter, Epsilon, verbose=True)
 # Plot the function with the optimization path and the results
 
 print(f"The optimal point is: x = {x[0, -1]:.5f}, y = {x[1, -1]:.5f}.")
