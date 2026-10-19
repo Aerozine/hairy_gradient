@@ -11,10 +11,6 @@ from getObjFVal import *
 from linear import linear_search
 from optimization import *
 
-# the methods call linear_search without naming a method, so the figure is made
-# with whichever one linear.py has as its default. read it, only to label it.
-LINE_SEARCH = inspect.signature(linear_search).parameters["method"].default
-
 # based on plotOptimizationPath
 FUNCTIONS = (1, 2)
 lb, up = -15, 15
@@ -127,7 +123,7 @@ if __name__ == "__main__":
                 cb.ax.minorticks_off()
 
         fig.suptitle(f"Cost against the starting point, f{functionID} "
-                     f"(line search: {LINE_SEARCH}, red = MaxIter reached)")
+                     f"(red = MaxIter reached)")
         fig.tight_layout()
         fig.savefig(f"img/{functionID}_heatmap.pdf", bbox_inches="tight")
         print(f"saved img/{functionID}_heatmap.pdf", flush=True)
