@@ -5,7 +5,7 @@ from matplotlib.ticker import LinearLocator
 
 # based on https://matplotlib.org/stable/gallery/mplot3d/surface3d.html
 functionID = 1
-lb, up = -15, 15
+lb, up = -25, 25
 
 fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
 

@@ -1,6 +1,17 @@
 from getObjFVal import getObjFVal, getObjFGrad, getObjFHess
 
 
+# raised when a line search cannot return a usable step, so that a caller sees
+# the failure instead of a silently substituted one
+class LineSearchError(RuntimeError):
+    pass
+
+
+class LineSearchMaxIterError(LineSearchError):
+    pass
+
+
+
 # Line search method 1: dichotomy with derivatives (125)
 # how should we set h ?
 def dichotomy(
@@ -32,7 +43,7 @@ def dichotomy(
 
 
 # x, s and alpha are current iterates i in the method calling the function
-# h and rho are only used by the dichotomy fallback, alpha starts at 0 (114)
+# h and rho are ignored, the method starts from alpha = 0 as in the course
 def newton_raphson(x, s, functionID, tol=1e-5, h=0.1, rho=0.5, alpha=0.0,
                    MaxIter=100):
 
@@ -51,17 +62,26 @@ def newton_raphson(x, s, functionID, tol=1e-5, h=0.1, rho=0.5, alpha=0.0,
         # the solution of phi'(alpha) = 0 is a minimum only when phi'' > 0 (119)
         curvature = ddphi(alpha)
         if curvature <= 0:
-            return dichotomy(x, s, functionID, tol, h, rho)
+            raise LineSearchError(
+                f"Newton-Raphson: phi''({alpha:g}) = {curvature:.3e} <= 0, the "
+                f"stationary point of phi is not a minimum (119)"
+            )
 
         # iteration of the method (117)
         alpha -= d1 / curvature
 
         # the line search has to work with a positivity constraint (114)
         if alpha <= 0:
-            return dichotomy(x, s, functionID, tol, h, rho)
+            raise LineSearchError(
+                f"Newton-Raphson: alpha = {alpha:g} <= 0, outside the feasible "
+                f"half-line of the line search (114)"
+            )
 
     # the global convergence of the method is not guaranteed (120)
-    return dichotomy(x, s, functionID, tol, h, rho)
+    raise LineSearchMaxIterError(
+        f"Newton-Raphson: MaxIter = {MaxIter} reached without satisfying "
+        f"|phi'(alpha)| <= {tol:g}, last |phi'| = {abs(dphi(alpha)):.3e}"
+    )
 
 
 def quadratic(x, s, functionID, tol=1e-5, h=0.1, rho=0.5, MaxIter=100):
