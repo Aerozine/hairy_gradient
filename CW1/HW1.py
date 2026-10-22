@@ -13,7 +13,7 @@ from plotOptimizationPath import plotOptimizationPath
 export_fig = True # Export the optimization path (or not) in the (../pathPlots/) dir
 
 functionID = 1
-xinit = np.array([-6, -9.5])  # initial point
+xinit = np.array([0,0])  # initial point
 MaxIter = 100  # Maximum number of iterations
 Epsilon = 1e-5  # Tolerance for the stop criteria
 

@@ -8,6 +8,128 @@ lb, up = -15, 15  # the domain of the statement
 N = 30  # N x N grid of starting points in [lb, up]^2, to get a spread
 
 
+
+def fct_tol(n, functionID, MaxIter, eps, method) :
+    
+    x_rep_c1 = np.zeros((n, len(eps)))
+    x_rep_c2 = np.zeros((n, len(eps)))
+    x_rep_c3 = np.zeros((n, len(eps)))
+    fct_c1 = np.zeros(len(eps))
+    fct_c2 = np.zeros(len(eps))
+    fct_c3 = np.zeros(len(eps))
+    
+    for i in range(len(eps)) :
+        xinit = np.array([0,0])
+        xinit = xinit.reshape(2, 1)
+        x = np.zeros((n, MaxIter))
+        x[:, 0] = xinit[:, 0]  
+        
+        if method == 1 :
+
+            x_rep_c1[:,i] = steepest_descent(x, n, functionID, MaxIter, eps[i], crit_1_max,verbose=False)[:,-1]
+            fct_c1[i] = getObjFVal(x_rep_c1[:,i], functionID)
+            
+            x_rep_c2[:,i] = steepest_descent(x, n, functionID, MaxIter, eps[i], crit_2_norm,verbose=False)[:,-1]
+            fct_c2[i] = getObjFVal(x_rep_c2[:,i], functionID)
+            
+            x_rep_c3[:,i] = steepest_descent(x, n, functionID, MaxIter, eps[i], crit_3_diff,verbose=False)[:,-1]
+            fct_c3[i] = getObjFVal(x_rep_c3[:,i], functionID)
+          
+        if method == 2 :
+
+            x_rep_c1[:,i] = conjugate_gradients_Fletcher_Reeves(x, n, functionID, MaxIter, eps[i], crit_1_max,verbose=False)[:,-1]
+            fct_c1[i] = getObjFVal(x_rep_c1[:,i], functionID)
+            
+            x_rep_c2[:,i] = conjugate_gradients_Fletcher_Reeves(x, n, functionID, MaxIter, eps[i], crit_2_norm,verbose=False)[:,-1]
+            fct_c2[i] = getObjFVal(x_rep_c2[:,i], functionID)
+            
+            x_rep_c3[:,i] = conjugate_gradients_Fletcher_Reeves(x, n, functionID, MaxIter, eps[i], crit_3_diff,verbose=False)[:,-1]
+            fct_c3[i] = getObjFVal(x_rep_c3[:,i], functionID)
+        
+        if method == 3 :
+
+            x_rep_c1[:,i] = BFGS(x, n, functionID, MaxIter, eps[i], crit_1_max,verbose=False)[:,-1]
+            fct_c1[i] = getObjFVal(x_rep_c1[:,i], functionID)
+            
+            x_rep_c2[:,i] = BFGS(x, n, functionID, MaxIter, eps[i], crit_2_norm,verbose=False)[:,-1]
+            fct_c2[i] = getObjFVal(x_rep_c2[:,i], functionID)
+            
+            x_rep_c3[:,i] = BFGS(x, n, functionID, MaxIter, eps[i], crit_3_diff,verbose=False)[:,-1]
+            fct_c3[i] = getObjFVal(x_rep_c3[:,i], functionID)
+        
+        
+    plt.rcParams['axes.formatter.useoffset'] = False
+    plt.semilogx(eps, fct_c1 , color = 'm', label = r'$\max_i |\nabla f_i| < \epsilon$')
+    plt.semilogx(eps, fct_c2 , color = 'darkblue', label =r'$\nabla f^T \nabla f < \epsilon$')
+    plt.semilogx(eps, fct_c3 , color = 'orange', label =r'$|f^{k+1} - f^k| < \epsilon$')
+    plt.scatter(eps, fct_c1 , color = 'm', marker = 'o' )
+    plt.scatter(eps, fct_c2 , color = 'darkblue', marker ='s' )
+    plt.scatter(eps, fct_c3 , color = 'orange', marker ='^')
+    plt.xlabel('Tolerance eps [-]', fontsize = 13)
+    plt.ylabel('Function value [-]', fontsize = 13)
+    plt.grid()
+    plt.legend()
+    plt.gca().invert_xaxis() 
+    plt.savefig('bfgs_fct2_tol.pdf', bbox_inches='tight', dpi=300)
+    plt.show()
+    
+    
+    return 
+
+
+'''
+def fct_tol(n, functionID, MaxIter, eps, crit) :
+    
+    x_rep_steep = np.zeros((n, len(eps)))
+    x_rep_cg = np.zeros((n, len(eps)))
+    x_rep_BFGS = np.zeros((n, len(eps)))
+    fct_steep = np.zeros(len(eps))
+    fct_cg = np.zeros(len(eps))
+    fct_BFGS = np.zeros(len(eps))
+    
+    for i in range(len(eps)) :
+        xinit = np.array([0,0])
+        xinit = xinit.reshape(2, 1)
+        x = np.zeros((n, MaxIter))
+        x[:, 0] = xinit[:, 0]  
+        
+        if method == 1 :
+
+            x_rep_steep[:,i] = steepest_descent(x, n, functionID, MaxIter, eps[i], crit,verbose=False)[:,-1]
+            fct_steep[i] = getObjFVal(x_rep_steep[:,i], functionID)
+        
+            x_rep_cg[:,i] = conjugate_gradients_Fletcher_Reeves(x, n, functionID, MaxIter, eps[i], crit,verbose=False)[:,-1]
+            fct_cg[i] = getObjFVal(x_rep_cg[:,i], functionID)
+            
+            x_rep_BFGS[:,i] = BFGS(x, n, functionID, MaxIter, eps[i], crit,verbose=False)[:,-1]
+            fct_BFGS[i] = getObjFVal(x_rep_BFGS[:,i], functionID)
+        
+    print('1 : ',x_rep_steep)
+    print('2', x_rep_cg)
+    print('3', x_rep_BFGS)
+    
+    plt.semilogx(eps, fct_steep , color = 'm', label ='Steepest Descent')
+    plt.semilogx(eps, fct_cg , color = 'darkblue', label ='Conj. Grad.')
+    plt.semilogx(eps, fct_BFGS , color = 'orange', label ='BFGS')
+    plt.scatter(eps, fct_steep , color = 'm', marker = 'o' )
+    plt.scatter(eps, fct_cg , color = 'darkblue', marker ='s' )
+    plt.scatter(eps, fct_BFGS , color = 'orange', marker ='^')
+    plt.xlabel('Tolerance eps [-]', fontsize = 13)
+    plt.ylabel('Function value [-]', fontsize = 13)
+    plt.grid()
+    plt.legend()
+    plt.gca().invert_xaxis() 
+    #plt.savefig('conv_f1.pdf', bbox_inches='tight', dpi=300)
+    plt.show()
+    
+    
+    return 
+
+'''
+
+
+
+
 def crit_arret(n, functionID, MaxIter, method, eps, crit) :
     
     # each metric is kept as (median, min, max) over the grid of starting points
@@ -163,11 +285,11 @@ if __name__== '__main__':
     n = 2  # Dimension of the problem
     # the starting point is no longer a single one: crit_arret sweeps the
     # N x N grid of [lb, up]^2 so that a median and a spread can be reported
-    
+    crit = crit_3_diff
     
     #crit_arret(x, n, functionID, MaxIter, method, eps, crit_2_norm)
-    
-    plot_eps(n, functionID, MaxIter, eps, method)
+    fct_tol(n, functionID, MaxIter, eps, method)
+    #plot_eps(n, functionID, MaxIter, eps, method)
 
 
 
