@@ -5,7 +5,7 @@ import time
 import matplotlib.pyplot as plt
 
 lb, up = -15, 15  # the domain of the statement
-N = 8  # N x N grid of starting points in [lb, up]^2, to get a spread
+N = 30  # N x N grid of starting points in [lb, up]^2, to get a spread
 
 
 def crit_arret(n, functionID, MaxIter, method, eps, crit) :
@@ -89,8 +89,8 @@ def plot_eps(n, functionID, MaxIter, eps, method):
         plt.yscale('log')
         plt.xlabel('Tolerance eps [-]', fontsize = 13)
         plt.ylabel(ylabel, fontsize = 13)
-        plt.title(f'f{functionID}, median over {N}x{N} starting points',
-                  fontsize = 12)
+        #plt.title(f'f{functionID}, median over {N}x{N} starting points',
+                  #fontsize = 12)
         plt.grid()
         plt.legend()
         plt.gca().invert_xaxis()  # once per figure, twice cancels out
@@ -154,8 +154,8 @@ def plot_eps(x, n, functionID, MaxIter, eps, method):
 
 if __name__== '__main__':
     
-    functionID = 1
-    method = 1
+    functionID = 2
+    method = 3
     eps = [10**-i for i in range(1,10)]
     #eps = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5 , 1e-6, 1e-7, 1e-8, 1e-9, 1e-10, 1e-11, 1e-12, 1e-13, 1e-14, 1e-15, 1e-16]
 
