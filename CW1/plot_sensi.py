@@ -66,16 +66,18 @@ def crit_arret(n, functionID, MaxIter, method, eps, crit) :
 
 def plot_eps(n, functionID, MaxIter, eps, method):
     
-    criteria = ((crit_1_max, 'Criterion 1 (max)', 'm', 'o'),
-                (crit_2_norm, 'Criterion 2 (norm)', 'darkblue', '^'),
-                (crit_3_diff, 'Criterion 3 (diff)', 'orange', 's'))
+    # the criterion is written out: criterion 2 compares the SQUARE of the
+    # norm to the same Epsilon as the other two (21), which the formula shows
+    criteria = ((crit_1_max, r'$\max_i |\nabla f_i| < \epsilon$', 'm', 'o'),
+                (crit_2_norm, r'$\nabla f^T \nabla f < \epsilon$', 'darkblue', '^'),
+                (crit_3_diff, r'$|f^{k+1} - f^k| < \epsilon$', 'orange', 's'))
     
     results = [crit_arret(n, functionID, MaxIter, method, eps, c)
                for c, *_ in criteria]
     styles = [(label, color, marker) for _, label, color, marker in criteria]
     
     for k, (ylabel, filename) in enumerate((
-        ('getObjFGrad calls [-]', 'img/nb_calls_method.pdf'),
+        (r'$\nabla F$ calls [-]', 'img/nb_calls_method.pdf'),
         ('Number of iterations [-]', 'img/nb_it_method.pdf'),
         ('Time [s]', 'img/time_method.pdf'),
     )):
@@ -87,10 +89,8 @@ def plot_eps(n, functionID, MaxIter, eps, method):
             plt.plot(eps, med, color=color, label=label, marker=marker)
         plt.xscale('log')
         plt.yscale('log')
-        plt.xlabel('Tolerance eps [-]', fontsize = 13)
+        plt.xlabel(r'Tolerance $\epsilon$ [-]', fontsize = 13)
         plt.ylabel(ylabel, fontsize = 13)
-        plt.title(f'f{functionID}, median over {N}x{N} starting points',
-                  fontsize = 12)
         plt.grid()
         plt.legend()
         plt.gca().invert_xaxis()  # once per figure, twice cancels out

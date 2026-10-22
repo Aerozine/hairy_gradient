@@ -1,3 +1,5 @@
+import sys
+
 import numpy as np
 from getObjFVal import *
 from linear import linear_search
@@ -154,16 +156,81 @@ def conjugate_gradients_Fletcher_Reeves(
     return x[:, : i + 1]  # Remove the zero elements due to the initialization step
 
 
+# H^0 of the quasi-Newton update (162)
+
+def precond_identity(x0, n, functionID):
+    return np.eye(n)
+
+
+# Jacobi -> rescaling each variable by its curvature
+def precond_jacobi(x0, n, functionID):
+    d = np.diag(getObjFHess(x0, functionID)).astype(float).copy()
+    # H^0 has to be SPD: a flat or concave direction gets the unit scaling back
+    bad = ~(d > 0)
+    if bad.any():
+        d[bad] = 1.0
+    return np.diag(1.0 / d)
+
+
+# the exact inverse Hessian at x^0: BFGS then starts as Newton's method, which
+# on a quadratic reaches the minimiser in a single step
+def precond_inv_hessian(x0, n, functionID):
+    Hess = getObjFHess(x0, functionID)
+    w, V = np.linalg.eigh(Hess)
+    # the Hessian of f2 is not SPD everywhere
+    #so H^0 = I is used instead
+    if (w <= 0).any():
+        return np.eye(n)
+    return (V / w) @ V.T
+
+
+preconditioners = {
+    "identity": precond_identity,
+    "jacobi": precond_jacobi,
+    "inverse hessian": precond_inv_hessian,
+}
+
+
+# precond is a function (or the name of one of those above) building H^0
+def build_H0(precond, x0, n, functionID, verbose=True):
+    build = precond if callable(precond) else preconditioners.get(precond)
+    if build is None:
+        raise ValueError(
+            f"Unknown preconditioner {precond!r}, pick one of "
+            f"{sorted(preconditioners)}"
+        )
+    H0 = np.asarray(build(np.asarray(x0, float), n, functionID), float)
+    if H0.shape != (n, n):
+        raise ValueError(
+            f"preconditioner {getattr(build, '__name__', build)} returned a "
+            f"{H0.shape} H^0, expected ({n}, {n})"
+        )
+    # -H^0 grad is a descent direction only if H^0 is SPD (151)
+    if verbose:
+        w = np.linalg.eigvalsh(0.5 * (H0 + H0.T))
+        if not np.allclose(H0, H0.T) or w.min() <= 0:
+            print(
+                f"BFGS: H^0 given by "
+                f"{getattr(build, '__name__', build)} is not SPD "
+                f"(smallest eigenvalue {w.min():.3e}), -H^0 grad f is not "
+                f"guaranteed to be a descent direction (151)",
+                file=sys.stderr,
+            )
+    return H0
+
+
 # 3) BFGS Quasi-Newton
 # restart = 0 -> no re-initialization, restart = n -> the course's rule (162)
-def BFGS(x, n, functionID, MaxIter, Epsilon,criterion = crit_2_norm, restart=0, verbose=True):
+def BFGS(x, n, functionID, MaxIter, Epsilon,criterion = crit_2_norm, restart=0,
+         precond=precond_identity, verbose=True):
     if verbose:
         print("You chose the BFGS Quasi-Newton method.")
         
     grad = np.zeros((n, MaxIter))
 
-    H = np.eye(n)  # guess from 162
-    # should we put a "nice" value from default for this one ?
+    # guess from 162, H^0 = I unless another preconditioner is given
+    H0 = build_H0(precond, x[:, 0], n, functionID, verbose)
+    H = H0.copy()
     Fgrad = getObjFGrad(x[:, 0], functionID)
 
     # should be MaxIter-1 since initialization of x= n,MaxIter
@@ -188,9 +255,9 @@ def BFGS(x, n, functionID, MaxIter, Epsilon,criterion = crit_2_norm, restart=0, 
         
         
         # periodic re-initialization (162)
-        # -> after n iterations, starting from x^n, go on with H = I
+        # -> after n iterations, starting from x^n, go on with H = H^0
         if restart and k > 0 and k % restart == 0:
-            H = np.eye(n)
+            H = H0.copy()
 
         # Quasi-Newton update (151)
         s = -H @ Fgrad
@@ -213,6 +280,18 @@ def BFGS(x, n, functionID, MaxIter, Epsilon,criterion = crit_2_norm, restart=0, 
                 + (1 + (gamma @ Hg) / dg) * np.outer(delta, delta) / dg
                 - (np.outer(delta, Hg) + np.outer(Hg, delta)) / dg
             )
+        else:
+            # delta . gamma > 0 is exactly what keeps H SPD (161). it can only
+            # fail when the line search returns a step that does not satisfy
+            # the curvature condition, which f2 allows since it is not convex.
+            # updating anyway could make -H grad an ASCENT direction, so the
+            # update is skipped and H is kept as it is
+            if verbose:
+                print(
+                    f"BFGS: k = {k}, delta . gamma = {dg:.3e} <= 0, the SPD of "
+                    f"H^{k + 1} is not assured (161), update skipped",
+                    file=sys.stderr,
+                )
         Fgrad = Fgrad_new
 
     # If the for loop finished, MaxIter is exceeeded (otherwise break before)

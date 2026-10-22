@@ -1,8 +1,22 @@
 from getObjFVal import getObjFVal, getObjFGrad, getObjFHess
 
+# raised when a line search cannot return a usable step, so that a caller sees
+# the failure instead of a silently substituted one
+class LineSearchError(RuntimeError):
+    pass
 
-# Line search method 1: dichotomy with derivatives (125)
-# how should we set h ?
+
+class LineSearchMaxIterError(LineSearchError):
+    pass
+
+
+
+#dichotomy (125)
+
+# trace: when a list is given, every cut is appended to it as
+# (amin, amax, a), the bracket and the point that was probed to obtain it.
+# it is only read by the plots, the method itself is unchanged
+
 def dichotomy(
     x,
     s,
@@ -10,6 +24,7 @@ def dichotomy(
     tol=1e-5,
     h=0.1,
     rho=0.5,
+    trace=None,
 ):
     # Dichotomy method ( 125)
     # rho = 0.5 -> bisection !
@@ -20,21 +35,25 @@ def dichotomy(
     # determine the first interval (127)
     while dphi(amax) < 0:
         amin, amax = amax, 2 * amax
+    if trace is not None:
+        trace.append((amin, amax, None))  # the initial cut, before any bisection
     # each iteration (126)
     while amax - amin > tol:
         a = amax - rho * (amax - amin)
         amin, amax = (a, amax) if dphi(a) < 0 else (amin, a)
+        if trace is not None:
+            trace.append((amin, amax, a))
     a = amax - rho * (amax - amin)
     return a
 
 
-# Line search method 2: Newton-Raphson (117)
+#Newton-Raphson (117)
 
 
 # x, s and alpha are current iterates i in the method calling the function
-# h and rho are only used by the dichotomy fallback, alpha starts at 0 (114)
+# h and rho are ignored, the method starts from alpha = 0 as in the course
 def newton_raphson(x, s, functionID, tol=1e-5, h=0.1, rho=0.5, alpha=0.0,
-                   MaxIter=100):
+                   MaxIter=100, trace=None):
 
     def dphi(alpha):
         return getObjFGrad(x + alpha * s, functionID) @ s
@@ -43,6 +62,8 @@ def newton_raphson(x, s, functionID, tol=1e-5, h=0.1, rho=0.5, alpha=0.0,
         return s.T @ getObjFHess(x + alpha * s, functionID) @ s
 
     for _ in range(MaxIter):
+        if trace is not None:
+            trace.append(alpha)
         # optimality condition of the line search, phi'(alpha) = 0 (115)
         d1 = dphi(alpha)
         if abs(d1) <= tol:
@@ -51,20 +72,30 @@ def newton_raphson(x, s, functionID, tol=1e-5, h=0.1, rho=0.5, alpha=0.0,
         # the solution of phi'(alpha) = 0 is a minimum only when phi'' > 0 (119)
         curvature = ddphi(alpha)
         if curvature <= 0:
-            return dichotomy(x, s, functionID, tol, h, rho)
+            raise LineSearchError(
+                f"Newton-Raphson: phi''({alpha:g}) = {curvature:.3e} <= 0, the "
+                f"stationary point of phi is not a minimum (119)"
+            )
 
         # iteration of the method (117)
         alpha -= d1 / curvature
 
         # the line search has to work with a positivity constraint (114)
         if alpha <= 0:
-            return dichotomy(x, s, functionID, tol, h, rho)
+            raise LineSearchError(
+                f"Newton-Raphson: alpha = {alpha:g} <= 0, outside the feasible "
+                f"half-line of the line search (114)"
+            )
 
     # the global convergence of the method is not guaranteed (120)
-    return dichotomy(x, s, functionID, tol, h, rho)
+    raise LineSearchMaxIterError(
+        f"Newton-Raphson: MaxIter = {MaxIter} reached without satisfying "
+        f"|phi'(alpha)| <= {tol:g}, last |phi'| = {abs(dphi(alpha)):.3e}"
+    )
 
 
-def quadratic(x, s, functionID, tol=1e-5, h=0.1, rho=0.5, MaxIter=100):
+def quadratic(x, s, functionID, tol=1e-5, h=0.1, rho=0.5, MaxIter=100,
+              trace=None):
 
     def phi(alpha):
         return getObjFVal(x + alpha * s, functionID)
@@ -116,6 +147,8 @@ def quadratic(x, s, functionID, tol=1e-5, h=0.1, rho=0.5, MaxIter=100):
     # a_1 < a_2 < a_3 with phi(a_1) >= phi(a_2) and phi(a_3) >= phi(a_2)
     # -> approximate phi on [a_1, a_3] by the quadric q through the 3 points
     for _ in range(MaxIter):
+        if trace is not None:
+            trace.append(a2)  # the current best of the three points
         if a3 - a1 < tol:
             break
 
@@ -163,3 +196,10 @@ def linear_search(x, s, functionID, tol, h=0.1, rho=0.5, method="dichotomy"):
             f"Unknown line search {method!r}, pick one of {sorted(linear_methods)}"
         )
     return search(x, s, functionID, tol, h, rho)
+
+
+# the statement asks for a routine named getAlpha returning the step length.
+# it is linear_search under the name of the statement, with the arguments in
+# the order the methods use them
+def getAlpha(x, s, functionID, tol, h=0.1, rho=0.5, method="dichotomy"):
+    return linear_search(x, s, functionID, tol, h, rho, method)
