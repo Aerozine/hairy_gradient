@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 
 from getObjFVal import getObjFGrad, reset_counters
 from linear import linear_search
+from matplotlib.ticker import ScalarFormatter
 from optimization import (conjugate_gradients_Fletcher_Reeves, BFGS,
                           crit_2_norm, MaxIterError)
 
@@ -18,8 +19,10 @@ MaxIter = 300
 Epsilon = 1e-5
 lb, up = -15, 15  # the domain of the statement
 N = 8  # N x N grid of starting points in [lb, up]^2
-RESTARTS = [0, 1, 2, 3, 4, 5, 6, 8, 10]  # p = 0 -> no re-initialization,
-#                                         p = 1 -> steepest descent for CG
+# p = 0 -> no re-initialization. p = 1 is left out: it re-initializes at every
+# iteration, which turns CG back into steepest descent, and its cost is so far
+# above the others that it flattens the variation between the values that matter
+RESTARTS = [0, 2, 3, 4, 5, 6, 8, 10]
 CRITERION = crit_2_norm
 
 methods = {
@@ -76,6 +79,9 @@ def sweep(method, functionID, restart):
 
 if __name__ == "__main__":
 
+    print(f"line search: {LINE_SEARCH}, p = 0 is the method without "
+          f"re-initialization")
+
     fig, axes = plt.subplots(2, 2, sharex=True)
 
     for row, functionID in enumerate((1, 2)):
@@ -95,21 +101,32 @@ if __name__ == "__main__":
                           f"starting points hit MaxIter, point dropped")
 
             # the bar spans the cheapest and the dearest starting point, the
-            # marker is the median over all of them
-            ax.errorbar(RESTARTS, med, yerr=[med - lo, hi - med],
-                        capsize=4, **style)
+            # marker is the median over all of them. the scale is logarithmic:
+            # the spread is wide enough to flatten the variation of the median
+            # on a linear axis, which is what the figure is about
+            ax.errorbar(RESTARTS, med, yerr=[med - lo, hi - med], capsize=4,
+                        label="median, bar = min to max", **style)
+            ax.set_title(name)
+            ax.set_yscale("log")
+            # a count of calls reads as 40, 50, 100, not as 4 x 10^1
+            for axis in (ax.yaxis.set_major_formatter,
+                         ax.yaxis.set_minor_formatter):
+                fmt = ScalarFormatter()
+                fmt.set_scientific(False)
+                axis(fmt)
 
-            ax.set_title(f"{name} on f{functionID}")
-            ax.grid(True, alpha=0.35)
+            ax.grid(True, alpha=0.35, which="both")
             ax.set_xticks(RESTARTS)
             if row == 1:
                 ax.set_xlabel("re-initialization period p [iterations]")
             if col == 0:
-                ax.set_ylabel("getObjFGrad calls [-]")
+                # the function is named here: the legend is shared by the four
+                # panels and cannot carry it
+                ax.set_ylabel(rf"$\nabla F$ calls on $f_{functionID}$  [-]")
 
-    fig.suptitle(f"Effect of the periodic re-initialization "
-                 f"(line search: {LINE_SEARCH})\n"
-                 f"p = 0 is the method without re-initialization; marker = "
-                 f"median over the {N}x{N} starting points, bar = min to max")
-    fig.tight_layout(rect=(0, 0, 1, 0.97))
+    # the four panels draw the same thing, so they share one legend
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    fig.tight_layout(rect=(0, 0.07, 1, 1))
+    fig.legend(handles, labels, loc="lower center",
+               title=f"{N}x{N} starting points")
     fig.savefig("img/reinit.pdf", bbox_inches="tight")

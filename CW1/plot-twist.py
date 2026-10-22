@@ -4,6 +4,7 @@ from concurrent.futures import ProcessPoolExecutor
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
 from matplotlib.colors import LogNorm
 from matplotlib.ticker import NullFormatter, ScalarFormatter
 
@@ -19,7 +20,7 @@ MaxIter = 300
 Epsilon = 1e-5
 CRITERION = crit_2_norm
 
-metrics = ["Iterations", "getObjFGrad calls"]
+metrics = ["Iterations", r"$\nabla F$ calls"]
 
 plt.rcParams.update({
     "font.family": "sans-serif",
@@ -122,8 +123,12 @@ if __name__ == "__main__":
                 cb.ax.yaxis.set_minor_formatter(NullFormatter())
                 cb.ax.minorticks_off()
 
-        fig.suptitle(f"Cost against the starting point, f{functionID} "
-                     f"(red = MaxIter reached)")
+        # what red means has to survive somewhere now that there is no title,
+        # but only when there is something red to explain
+        if any(np.isnan(data[name]).any() for name in methods):
+            axes[0, 0].legend(handles=[Patch(facecolor="#d03b3b",
+                                             label="MaxIter reached")],
+                              loc="upper right", fontsize=10, framealpha=0.9)
         fig.tight_layout()
         fig.savefig(f"img/{functionID}_heatmap.pdf", bbox_inches="tight")
         print(f"saved img/{functionID}_heatmap.pdf", flush=True)

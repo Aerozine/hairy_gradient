@@ -4,7 +4,7 @@ import inspect
 import numpy as np
 import matplotlib.pyplot as plt
 
-from getObjFVal import getObjFVal, getObjFHess
+from getObjFVal import getObjFVal, getObjFGrad, getObjFHess
 from optimization import (steepest_descent, conjugate_gradients_Fletcher_Reeves,
                           BFGS, crit_2_norm, MaxIterError)
 
@@ -50,6 +50,42 @@ def run(method, functionID, x0, Epsilon):
     return method(x, 2, functionID, MaxIter, Epsilon, crit_2_norm, **kw)
 
 
+# f(x*) of the basin the method actually reached.
+# taking f[-1] instead makes the last point of the curve exactly 0 BY
+# DEFINITION, which a log axis cannot show and which says nothing about the
+# convergence; and each method would be measured against its own last iterate.
+# Newton on grad f = 0 (125) starts from that iterate and converges in a couple
+# of steps, so x* is obtained to machine precision instead.
+def polish(x0, functionID, MaxStep=50, tol=1e-14):
+    x = np.array(x0, float)
+    for _ in range(MaxStep):
+        g = getObjFGrad(x, functionID)
+        if np.linalg.norm(g) < tol:
+            break
+        try:
+            step = np.linalg.solve(getObjFHess(x, functionID), g)
+        except np.linalg.LinAlgError:  # singular Hessian, keep the last x
+            break
+        x -= step
+    return x
+
+
+# f2 has several local minima, so x* is the one of the basin reached, and two
+# methods started at the same point may well not share it
+def fstar_of(path, functionID):
+    x_last = path[:, -1]
+    x_star = polish(x_last, functionID)
+    moved = np.linalg.norm(x_star - x_last)
+    g = np.linalg.norm(getObjFGrad(x_star, functionID))
+    # the polish has to stay in the basin: a jump means the Newton step left it
+    # and f(x*) would belong to another minimum
+    if not np.isfinite(x_star).all() or moved > 1.0 or g > 1e-8:
+        print(f"   f{functionID}: polish moved {moved:.2e} and left "
+              f"||grad|| = {g:.2e}, falling back on the last iterate")
+        return getObjFVal(x_last, functionID), x_last
+    return getObjFVal(x_star, functionID), x_star
+
+
 # the tightest tolerance that still converges, to get the longest trajectory
 def trajectory(method, functionID, x0):
     for Epsilon in (1e-12, 1e-10, 1e-8, 1e-5):
@@ -67,75 +103,38 @@ if __name__ == "__main__":
     A = getObjFHess(np.zeros(2), 1)
     b = np.array([8.0, 7.0])
     fstar_f1 = getObjFVal(np.linalg.solve(A, -b), 1)
+    # the panels show f(x^k) itself, so f(x*) is reported here rather than
+    # subtracted. on f1 it is exact (-353/44), on f2 it is the minimum of the
+    # basin each method reached, polished by Newton
+    print(f"f1: f* = {fstar_f1:.10f}, theoretical rate rho = {rho:.4f} (73)")
 
     fig, axes = plt.subplots(len(STARTS), 2, figsize=(12, 9))
 
     for row, x0 in enumerate(STARTS):
         for col, functionID in enumerate((1, 2)):
             ax = axes[row, col]
-            anchor = None
 
-            # gathered first: the floor of the panel depends on every series
-            series = []
             for name, method in methods.items():
                 path = trajectory(method, functionID, x0)
                 if path is None:
                     continue
-                f = np.array([getObjFVal(path[:, j], functionID)
+                # f(x^k) itself cannot go on a log axis: it is negative
+                # around the minima of both functions. the norm of the
+                # gradient is positive, needs no reference value, and is what
+                # the stopping criterion reads, so the decay shows as a line
+                g = np.array([np.linalg.norm(getObjFGrad(path[:, j], functionID))
                               for j in range(path.shape[1])])
-                fstar = fstar_f1 if functionID == 1 else f[-1]
-                series.append((name, f - fstar))
-
-            # an iterate landing on f(x*) gives d = 0, and a log axis has no
-            # place for it. rather than dropping it, which hides the very
-            # result, it is drawn as a star on a floor below every real value.
-            positive = [d[d > 0] for _, d in series if (d > 0).any()]
-            floor = np.concatenate(positive).min() / 30 if positive else 1e-16
-            exact = False
-
-            for name, d in series:
-                k = np.arange(len(d))
-                keep = d > 0
-
-                ax.semilogy(k[keep], d[keep], label=f"{name} ({len(d)} it.)",
+                ax.semilogy(np.arange(len(g)), g, label=f"{name} ({len(g)} it.)",
                             linewidth=1.8, markersize=5, **styles[name])
-                done = ~keep
-                if done.any():
-                    exact = True
-                    if keep.any():  # dotted drop from the last real value
-                        ax.semilogy([k[keep][-1], k[done][0]],
-                                    [d[keep][-1], floor], linestyle=":",
-                                    linewidth=1.2, color=styles[name]["color"])
-                    ax.semilogy(k[done], np.full(done.sum(), floor),
-                                linestyle="none", marker="*", markersize=13,
-                                color=styles[name]["color"])
-                if name == "Steepest descent" and keep.any():
-                    anchor = d[keep][0]
+                if functionID == 2:
+                    fstar, x_star = fstar_of(path, functionID)
+                    print(f"   f2 {name}, x0 = {x0}: x* = ({x_star[0]:.6f}, "
+                          f"{x_star[1]:.6f}), f* = {fstar:.10f}")
 
-            ax.set_ylim(bottom=floor / 4)
-
-            # the course gives a rate only for the quadratic
-            if functionID == 1 and anchor is not None:
-                kk = np.arange(0, 12)
-                ax.semilogy(kk, anchor * rho ** kk, color="0.45", linestyle="--",
-                            linewidth=1.5, label=rf"$\rho = {rho:.3f}$")
-
-            ax.set_title(rf"$f_{functionID}$, $x^0$ = ({x0[0]:g}, {x0[1]:g})")
             ax.set_xlabel("iteration k [-]")
-            if col == 0:
-                ax.set_ylabel(r"$f(x^k) - f(x^*)$  [-]")
+            ax.set_ylabel(rf"$\|\nabla f_{functionID}(x^k)\|$  [-]")
             ax.grid(alpha=0.35, which="both")
+            ax.legend(fontsize=9)
 
-            handles, labels = ax.get_legend_handles_labels()
-            if exact:
-                handles.append(plt.Line2D([], [], linestyle="none", marker="*",
-                                          color="0.35", markersize=13))
-                labels.append(r"$f(x^k) = f(x^*)$ exactly")
-            ax.legend(handles, labels, fontsize=9)
-
-    fig.suptitle("Rate of convergence, methods without re-initialization\n"
-                 r"(a star marks an iterate that reached $f(x^*)$ exactly, so "
-                 r"$f(x^k) - f(x^*) = 0$ and the log axis has no place for it)",
-                 fontsize=12)
     fig.tight_layout()
     fig.savefig("img/rate_of_convergence.pdf", bbox_inches="tight")
