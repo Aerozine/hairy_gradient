@@ -31,6 +31,7 @@ def crit_3_diff(f_k, f_kp1, grad_k, grad_kp1,Epsilon):
 def crit_1_3(f_k, f_kp1, grad_k, grad_kp1,Epsilon):
     return crit_3_diff(f_k, f_kp1, grad_k, grad_kp1,Epsilon) and crit_1_max(f_k, f_kp1, grad_k, grad_kp1,Epsilon)
 def crit_2_3(f_k, f_kp1, grad_k, grad_kp1,Epsilon):
+    #return crit_2_norm(f_k, f_kp1, grad_k, grad_kp1,10**(-5)) and crit_3_diff(f_k, f_kp1, grad_k, grad_kp1,Epsilon)
     return crit_2_norm(f_k, f_kp1, grad_k, grad_kp1,Epsilon) and crit_3_diff(f_k, f_kp1, grad_k, grad_kp1,Epsilon)
 
 

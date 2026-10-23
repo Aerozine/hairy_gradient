@@ -34,6 +34,7 @@ def fct_tol(n, functionID, MaxIter, eps, method) :
             
             x_rep_c3[:,i] = steepest_descent(x, n, functionID, MaxIter, eps[i], crit_3_diff,verbose=False)[:,-1]
             fct_c3[i] = getObjFVal(x_rep_c3[:,i], functionID)
+            
           
         if method == 2 :
 
@@ -45,6 +46,7 @@ def fct_tol(n, functionID, MaxIter, eps, method) :
             
             x_rep_c3[:,i] = conjugate_gradients_Fletcher_Reeves(x, n, functionID, MaxIter, eps[i], crit_3_diff,verbose=False)[:,-1]
             fct_c3[i] = getObjFVal(x_rep_c3[:,i], functionID)
+            
         
         if method == 3 :
 
@@ -56,25 +58,100 @@ def fct_tol(n, functionID, MaxIter, eps, method) :
             
             x_rep_c3[:,i] = BFGS(x, n, functionID, MaxIter, eps[i], crit_3_diff,verbose=False)[:,-1]
             fct_c3[i] = getObjFVal(x_rep_c3[:,i], functionID)
+            
         
         
     plt.rcParams['axes.formatter.useoffset'] = False
-    plt.semilogx(eps, fct_c1 , color = 'm', label = r'$\max_i |\nabla f_i| < \epsilon$')
-    plt.semilogx(eps, fct_c2 , color = 'darkblue', label =r'$\nabla f^T \nabla f < \epsilon$')
-    plt.semilogx(eps, fct_c3 , color = 'orange', label =r'$|f^{k+1} - f^k| < \epsilon$')
-    plt.scatter(eps, fct_c1 , color = 'm', marker = 'o' )
-    plt.scatter(eps, fct_c2 , color = 'darkblue', marker ='s' )
-    plt.scatter(eps, fct_c3 , color = 'orange', marker ='^')
+    plt.loglog(eps, np.abs(fct_c1) , color = 'm', label = r'$\max_i |\nabla f_i| < \epsilon$', marker ='o')
+    plt.loglog(eps, np.abs(fct_c2) , color = 'darkblue', label =r'$\nabla f^T \nabla f < \epsilon$', marker = 's')
+    plt.loglog(eps, np.abs(fct_c3) , color = 'orange', label =r'$|f^{k+1} - f^k| < \epsilon$', marker = '^')
+    #plt.loglog(eps, np.abs(fct_c23), color = 'c' , label = 'Crit 2 and Crit 3', marker = 'x')
     plt.xlabel('Tolerance eps [-]', fontsize = 13)
     plt.ylabel('Function value [-]', fontsize = 13)
     plt.grid()
     plt.legend()
     plt.gca().invert_xaxis() 
-    plt.savefig('bfgs_fct2_tol.pdf', bbox_inches='tight', dpi=300)
+    #plt.savefig('bfgs_fct2_tol.pdf', bbox_inches='tight', dpi=300)
     plt.show()
     
     
     return 
+
+def crit_comb(n, functionID, MaxIter, eps) :
+    
+    #x_rep_c1 = np.zeros((n, len(eps)))
+    #x_rep_c2 = np.zeros((n, len(eps)))
+    #x_rep_c3 = np.zeros((n, len(eps)))
+    fct_c1 = np.zeros(len(eps))
+    fct_c2 = np.zeros(len(eps))
+    fct_c3 = np.zeros(len(eps))
+    
+    nb_it_1 = np.zeros(len(eps))
+    nb_it_2 = np.zeros(len(eps))
+    nb_it_3 = np.zeros(len(eps))
+    #tol_norm2 = 1e-5
+    
+    xi = np.linspace(lb, up, N)
+    
+    for i in range(len(eps)) :
+        
+        iters1, iters2, iters3 = [], [], []
+        xinit = np.array([0,0])
+        xinit = xinit.reshape(2, 1)
+        x = np.zeros((n, MaxIter))
+        x[:, 0] = xinit[:, 0]  
+    
+            
+        x_rep_c1 = steepest_descent(x, n, functionID, MaxIter, eps[i], crit_2_3,verbose=False)
+        fct_c1[i] = getObjFVal(x_rep_c1[:,-1], functionID)
+        
+        x_rep_c2 = conjugate_gradients_Fletcher_Reeves(x, n, functionID, MaxIter, eps[i], crit_2_3,verbose=False)
+        fct_c2[i] = getObjFVal(x_rep_c2[:,-1], functionID)
+        
+        x_rep_c3 = BFGS(x, n, functionID, MaxIter, eps[i], crit_2_3,verbose=False)
+        fct_c3[i] = getObjFVal(x_rep_c3[:,-1], functionID)
+        
+        
+        nb_it_1[i] = x_rep_c1.shape[1]
+        nb_it_2[i] = x_rep_c2.shape[1]
+        nb_it_3[i] = x_rep_c3.shape[1]
+    
+            
+        
+        
+    
+    plt.rcParams['axes.formatter.useoffset'] = False
+    plt.semilogx(eps, fct_c1 , color = 'darkgreen', label = 'Steepest Descent', marker ='o')
+    plt.semilogx(eps, fct_c2 , color = 'blue', label ='Conj. Grad.', marker = 's')
+    plt.semilogx(eps, fct_c3 , color = 'red', label ='BFGS', marker = '^')
+    #plt.loglog(eps, np.abs(fct_c23), color = 'c' , label = 'Crit 2 and Crit 3', marker = 'x')
+    plt.xlabel('Tolerance eps of crit 3 [-]', fontsize = 13)
+    plt.ylabel('Function value [-]', fontsize = 13)
+    plt.grid()
+    plt.legend()
+    plt.gca().invert_xaxis() 
+    plt.savefig('comb_fct2_val.pdf', bbox_inches='tight', dpi=300)
+    plt.show()
+    
+    
+    plt.rcParams['axes.formatter.useoffset'] = False
+    plt.loglog(eps, nb_it_1 , color = 'darkgreen', label = 'Steepest Descent', marker ='o')
+    plt.loglog(eps, nb_it_2 , color = 'blue', label ='Conj. Grad.', marker = 's')
+    plt.loglog(eps, nb_it_3 , color = 'red', label ='BFGS', marker = '^')
+    #plt.loglog(eps, np.abs(fct_c23), color = 'c' , label = 'Crit 2 and Crit 3', marker = 'x')
+    plt.xlabel('Tolerance eps of crit 3 [-]', fontsize = 13)
+    plt.ylabel('Number of iterations [-]', fontsize = 13)
+    plt.grid()
+    plt.legend()
+    plt.gca().invert_xaxis() 
+    plt.savefig('comb_fct2_it.pdf', bbox_inches='tight', dpi=300)
+    plt.show()
+    
+    
+    
+    
+    
+    return nb_it_1, nb_it_2, nb_it_3
 
 
 '''
@@ -166,6 +243,8 @@ def crit_arret(n, functionID, MaxIter, method, eps, crit) :
                 continue
             end = time.perf_counter()
             
+            print(x_rep.shape[1])
+            
             # getObjFVal is never called by crit_1/crit_2 nor by the dichotomy,
             # so the gradient count is the one that carries the cost
             calls.append(getObjFGrad.calls)
@@ -199,9 +278,9 @@ def plot_eps(n, functionID, MaxIter, eps, method):
     styles = [(label, color, marker) for _, label, color, marker in criteria]
     
     for k, (ylabel, filename) in enumerate((
-        (r'$\nabla F$ calls [-]', 'img/nb_calls_method.pdf'),
-        ('Number of iterations [-]', 'img/nb_it_method.pdf'),
-        ('Time [s]', 'img/time_method.pdf'),
+        (r'$\nabla F$ calls [-]', 'img1/2_bfgs_nb_calls.pdf'),
+        ('Number of iterations [-]', 'img1/2_bfgs_nb_it.pdf'),
+        ('Time [s]', 'img1/2_bfgs_time.pdf'),
     )):
         # a figure of its own: without it both plots land on the same axes and
         # the second file holds all six curves
@@ -285,10 +364,17 @@ if __name__== '__main__':
     n = 2  # Dimension of the problem
     # the starting point is no longer a single one: crit_arret sweeps the
     # N x N grid of [lb, up]^2 so that a median and a spread can be reported
-    crit = crit_3_diff
+    #crit = crit_3_diff
     
-    #crit_arret(x, n, functionID, MaxIter, method, eps, crit_2_norm)
-    fct_tol(n, functionID, MaxIter, eps, method)
+    xinit = np.array([0,0])
+    xinit = xinit.reshape(2, 1)
+    x = np.zeros((n, MaxIter))
+    x[:, 0] = xinit[:, 0]  
+    
+    
+    crit_comb(n, functionID, MaxIter, eps)
+    #crit_arret(n, functionID, MaxIter, method, eps, crit_2_norm)
+    #fct_tol(n, functionID, MaxIter, eps, method)
     #plot_eps(n, functionID, MaxIter, eps, method)
 
 
