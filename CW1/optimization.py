@@ -30,13 +30,18 @@ def crit_3_diff(f_k, f_kp1, grad_k, grad_kp1,Epsilon):
 
 def crit_1_3(f_k, f_kp1, grad_k, grad_kp1,Epsilon):
     return crit_3_diff(f_k, f_kp1, grad_k, grad_kp1,Epsilon) and crit_1_max(f_k, f_kp1, grad_k, grad_kp1,Epsilon)
+
 def crit_2_3(f_k, f_kp1, grad_k, grad_kp1,Epsilon):
     return crit_2_norm(f_k, f_kp1, grad_k, grad_kp1,Epsilon) and crit_3_diff(f_k, f_kp1, grad_k, grad_kp1,Epsilon)
+
+def crit_2_3_comb(f_k, f_kp1, grad_k, grad_kp1,Epsilon):
+    return crit_2_norm(f_k, f_kp1, grad_k, grad_kp1,1e-5) and crit_3_diff(f_k, f_kp1, grad_k, grad_kp1,Epsilon)
+
 
 
 # the criteria built on |f(x^k) - f(x^k-1)| need the objective value of the
 # previous iterate; the purely gradient-based ones are given 0, 0 instead
-NEEDS_FVAL = (crit_3_diff, crit_1_3, crit_2_3)
+NEEDS_FVAL = (crit_3_diff, crit_1_3, crit_2_3, crit_2_3_comb)
 
 def steepest_descent(x, n, functionID, MaxIter, Epsilon,criterion = crit_2_norm, verbose=True):
     if verbose:
