@@ -49,7 +49,7 @@ def run_point(task):
     try:
         nit = methods[name](
             x, 2, functionID, MaxIter, Epsilon, CRITERION, verbose=False
-        ).shape[1]
+        ).shape[1]-1
     except MaxIterError:
         return np.nan, np.nan  # did not converge, drawn in red on the map
     return nit, getObjFGrad.calls
@@ -125,10 +125,10 @@ if __name__ == "__main__":
 
         # what red means has to survive somewhere now that there is no title,
         # but only when there is something red to explain
-        if any(np.isnan(data[name]).any() for name in methods):
+        """if any(np.isnan(data[name]).any() for name in methods):
             axes[0, 0].legend(handles=[Patch(facecolor="#d03b3b",
                                              label="MaxIter reached")],
-                              loc="upper right", fontsize=10, framealpha=0.9)
+                              loc="upper right", fontsize=10, framealpha=0.9)"""
         fig.tight_layout()
         fig.savefig(f"img/{functionID}_heatmap.pdf", bbox_inches="tight")
         print(f"saved img/{functionID}_heatmap.pdf", flush=True)

@@ -4,10 +4,10 @@ import getObjFVal as F
 from matplotlib.ticker import LinearLocator
 
 # based on https://matplotlib.org/stable/gallery/mplot3d/surface3d.html
-functionID = 1
+functionID = 2
 lb, up = -25, 25
 
-fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+fig, ax = plt.subplots(figsize=(20,20),subplot_kw={"projection": "3d"})
 
 # Make data.
 X = np.arange(lb, up + 0.25, 0.25)
@@ -24,11 +24,12 @@ ax.zaxis.set_major_locator(LinearLocator(10))
 # A StrMethodFormatter is used automatically
 ax.zaxis.set_major_formatter("{x:.0f}")
 
-ax.set_xlabel("x_1")
-ax.set_ylabel("x_2")
-ax.set_title(f"f{functionID}")
+ax.set_xlabel("$x_1$")
+ax.set_ylabel("$x_2$")
+#ax.set_title(f"f{functionID}")
 
 # Add a color bar which maps values to colors.
-fig.colorbar(surf, shrink=0.5, aspect=5)
+fig.colorbar(surf, shrink=0.5, aspect=5, pad = 0.1)
 
+plt.tight_layout()
 plt.show()

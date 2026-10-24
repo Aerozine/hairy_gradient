@@ -1,4 +1,5 @@
 from getObjFVal import getObjFVal, getObjFGrad, getObjFHess
+import numpy as np
 
 # raised when a line search cannot return a usable step, so that a caller sees
 # the failure instead of a silently substituted one
@@ -181,20 +182,32 @@ def quadratic(x, s, functionID, tol=1e-5, h=0.1, rho=0.5, MaxIter=100,
     return a2
 
 
+def SCQF(x, s, grad):
+    
+    A = np.array([[10.0, -4.0],
+                  [-4.0,  6.0]])
+    
+    alpha = -(s.T @ grad)/(s.T @ A @ s)
+    
+    return alpha    
+
+
 linear_methods = {
     "dichotomy": dichotomy,
     "newton-raphson": newton_raphson,
     "quadratic": quadratic,
+    "none": SCQF,
 }
 
 
-def linear_search(x, s, functionID, tol, h=0.1, rho=0.5, method="dichotomy"):
-    # fancy way to call the function of the name of method
+def linear_search(x, s, grad, functionID, tol, h=0.1, rho=0.5, method="dichotomy"):
     search = method if callable(method) else linear_methods.get(method)
     if search is None:
         raise ValueError(
             f"Unknown line search {method!r}, pick one of {sorted(linear_methods)}"
         )
+    if search is SCQF:
+        return search(x, s, grad)
     return search(x, s, functionID, tol, h, rho)
 
 

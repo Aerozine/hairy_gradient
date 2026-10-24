@@ -14,13 +14,13 @@ from optimization import BFGS, crit_2_norm, MaxIterError, preconditioners
 MaxIter = 300
 Epsilon = 1e-5
 CRITERION = crit_2_norm
-X0 = (10.0, -7.0)  # the starting point of both panels
+X0 = (-1.5, 12)  # the starting point of both panels
 
 # each series has its own marker, so the colour never carries the identity alone
 styles = {
     "identity": dict(color="green", marker="o"),
-    "jacobi": dict(color="red", marker="^"),
-    "inverse hessian": dict(color="blue", marker="s"),
+    "nocedal": dict(color="red", marker="^"),
+    "beta": dict(color="blue", marker="s"),
 }
 
 plt.rcParams.update({
@@ -33,7 +33,7 @@ def run(functionID, x0, precond):
     x[:, 0] = x0
     try:
         return BFGS(x, 2, functionID, MaxIter, Epsilon, CRITERION,
-                    precond=precond, verbose=False)
+                    precond=precond, verbose=False, restart=2)
     except MaxIterError:
         return None
 
@@ -43,7 +43,7 @@ if __name__ == "__main__":
     fig, axes = plt.subplots(1, 2, figsize=(13, 5.5))
 
     for ax, functionID in zip(axes, (1, 2)):
-        for name in preconditioners:
+        for name in styles:
             path = run(functionID, X0, name)
             if path is None:
                 print(f"f{functionID} {name}: MaxIter reached, series dropped")

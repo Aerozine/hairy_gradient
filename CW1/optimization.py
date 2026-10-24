@@ -63,7 +63,12 @@ def steepest_descent(x, n, functionID, MaxIter, Epsilon,criterion = crit_2_norm,
                 if verbose:
                     print("Bingo !")
                 break
-        alpha[k] = linear_search(x[:, k], grad[:, k], functionID, Epsilon)
+            
+        if functionID == 1:
+            alpha[k] = linear_search(x[:, k], grad[:, k], -grad[:, k], functionID, Epsilon, method="dichotomy")
+            
+        else:
+            alpha[k] = linear_search(x[:, k], grad[:, k], -grad[:, k], functionID, Epsilon)
 
         x[:, k + 1] = x[:, k] + alpha[k] * grad[:, k]
 
@@ -81,7 +86,7 @@ def steepest_descent(x, n, functionID, MaxIter, Epsilon,criterion = crit_2_norm,
 # 2) Conjugate gradients with Fletcher-Reeves update rule
 # restart = 0 -> no re-initialization, restart = n -> the course's rule (110)
 def conjugate_gradients_Fletcher_Reeves(
-    x, n, functionID, MaxIter, Epsilon,criterion = crit_2_norm, restart=3, verbose=True
+    x, n, functionID, MaxIter, Epsilon,criterion = crit_2_norm, restart=2, verbose=True
 ):
     if verbose:
         print(
@@ -132,7 +137,11 @@ def conjugate_gradients_Fletcher_Reeves(
             s[:, i] = -grad_x
 
         # f2 is general C1 -> need for a Line Search method
-        alpha[i] = linear_search(x[:, i], s[:, i], functionID, Epsilon)
+        if functionID == 1:
+            alpha[i] = linear_search(x[:, i], s[:, i], grad[:, k], functionID, Epsilon, method="dichotomy")
+            
+        else:
+            alpha[i] = linear_search(x[:, i], s[:, i], grad[:, k], functionID, Epsilon)
 
         # Update point x (108)
         x[:, i + 1] = x[:, i] + alpha[i] * s[:, i]
@@ -161,6 +170,9 @@ def conjugate_gradients_Fletcher_Reeves(
 def precond_identity(x0, n, functionID):
     return np.eye(n)
 
+def precond_beta(x0, n, functionID):
+    beta = 10
+    return beta * np.eye(n)
 
 # Jacobi -> rescaling each variable by its curvature
 def precond_jacobi(x0, n, functionID):
@@ -188,6 +200,8 @@ preconditioners = {
     "identity": precond_identity,
     "jacobi": precond_jacobi,
     "inverse hessian": precond_inv_hessian,
+    "beta": precond_beta,
+    "nocedal": precond_identity,
 }
 
 
@@ -257,11 +271,22 @@ def BFGS(x, n, functionID, MaxIter, Epsilon,criterion = crit_2_norm, restart=0,
         # periodic re-initialization (162)
         # -> after n iterations, starting from x^n, go on with H = H^0
         if restart and k > 0 and k % restart == 0:
-            H = H0.copy()
+            
+            if precond == "nocedal":
+                dg = delta @ gamma
+                gg = gamma @ gamma
+                H = (dg / gg) * np.eye(n)
+            else:
+                H = H0.copy()
 
         # Quasi-Newton update (151)
         s = -H @ Fgrad
-        a = linear_search(x[:, k], s, functionID, Epsilon)
+        
+        if functionID == 1:
+            a = linear_search(x[:, k], s, grad[:, k], functionID, Epsilon, method="dichotomy")
+        else:
+            a = linear_search(x[:, k], s, grad[:, k], functionID, Epsilon)
+        
         # x_(K+1)= x_k + alpha * s
         x[:, k + 1] = x[:, k] + a * s
 
@@ -271,6 +296,14 @@ def BFGS(x, n, functionID, MaxIter, Epsilon,criterion = crit_2_norm, restart=0,
         gamma = Fgrad_new - Fgrad
         # dg and Hg to not compute the value a lot of times
         dg = delta @ gamma
+        
+        # Replace H_0 or H_n in the Nocedal & Wright precond
+        if precond == "nocedal" and k == 0 and dg > 0:
+            gg = gamma @ gamma
+            beta = dg/gg
+            H = beta * np.eye(n)
+            print(f"nocedal: dg={dg:.3e}, gg={gg:.3e}, beta={beta:.3e}", file=sys.stderr)
+            
         # assure SPD for i+1 (161)
         if dg > 0:
             Hg = H @ gamma
@@ -280,6 +313,7 @@ def BFGS(x, n, functionID, MaxIter, Epsilon,criterion = crit_2_norm, restart=0,
                 + (1 + (gamma @ Hg) / dg) * np.outer(delta, delta) / dg
                 - (np.outer(delta, Hg) + np.outer(Hg, delta)) / dg
             )
+    
         else:
             # delta . gamma > 0 is exactly what keeps H SPD (161). it can only
             # fail when the line search returns a step that does not satisfy

@@ -4,24 +4,17 @@ from matplotlib.ticker import MaxNLocator, MultipleLocator
 from getObjFVal import *
 from optimization import *
 
+import matplotlib.pyplot as plt
+
 plt.rcParams.update({
-"font.family": "sans-serif", 
-"font.sans-serif": "Tahoma",
-"mathtext.fontset": "dejavuserif",
-"xtick.labelsize": 30,  
-"ytick.labelsize": 30,
-"xtick.major.pad": 20,
-"ytick.major.pad": 20,
-'font.size': 35,
-"figure.figsize": (15, 12),
-"lines.linewidth": 3,
-"axes.labelpad": 15,
-"savefig.format": 'pdf',
-"grid.linewidth": 1,
-"xtick.major.size": 10,
-"ytick.major.size": 10,
-"legend.fontsize": 35,
-"lines.markersize": 10
+    "font.size": 12,
+    "axes.labelsize": 13,
+    "axes.titlesize": 14,
+    "xtick.labelsize": 11,
+    "ytick.labelsize": 11,
+    "legend.fontsize": 13,
+    "mathtext.fontset": "dejavuserif",
+    
 })
 
 
@@ -33,14 +26,27 @@ styles = {
 
 MaxIter = 300
 Epsilon = 1e-5
-x0 = np.array([0,0])
-functionID = 2
+functionID = 1
+
+if functionID == 1:
+    START_POINTS = {
+        "Steepest descent":    (-2.5, -14),
+        "Conjugate gradients": (-2.5, -14),
+        "BFGS":                (-2.5, -14),
+    }
+
+elif functionID == 2:
+    START_POINTS = {
+        "Steepest descent":    (-1.5, 12.5),
+        "Conjugate gradients": (-1.5, 12.5),
+        "BFGS":                (-1.5, 12.5),
+    }
 
 
 def getFValHist(name):
     
     x = np.zeros((2, MaxIter))
-    x[:, 0] = x0
+    x[:, 0] = START_POINTS[name]
     
     x = methods[name](x, 2, functionID, MaxIter, Epsilon, verbose=False)
     
@@ -56,13 +62,21 @@ if __name__ == "__main__":
     
     for name in methods:
         
+        if functionID == 1:
+            f_star = -8.022727272727
+        
+        elif functionID == 2:
+            f_star = -23.324709104004
+        
         cut = None
     
         nit, hist = getFValHist(name)
         
         it = np.arange(1, nit+1, 1)
-
-        ax.plot(it, hist, **styles[name], label = name)
+        
+        ax.set_xlabel("Iterations")
+        ax.set_ylabel(rf"$|f_{{{functionID}}} - f_{{{functionID},\infty}}|$")
+        ax.plot(it-1, np.abs(hist - f_star), **styles[name], label = name)
         ax.grid()
         ax.legend()
         
@@ -70,6 +84,8 @@ if __name__ == "__main__":
             ax.set_xlim(right=cut)
             
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-        ax.xaxis.set_major_locator(MultipleLocator(1))
+        #ax.xaxis.set_major_locator(MultipleLocator(1))
+        
+    plt.savefig(f"img/{functionID}_conv.pdf", dpi=300, bbox_inches="tight")
     plt.show()
         
