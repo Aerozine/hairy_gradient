@@ -93,27 +93,16 @@ def conjugate_gradients_Fletcher_Reeves(
             "You chose the conjugate gradients method with Fletcher-Reeves update rule."
         )
 
-    # Shortcut function
-    def Fgrad(x):
-        return getObjFGrad(x, functionID)
-
     # Initialize parameters alpha and beta
     alpha = np.zeros(MaxIter)
     beta = np.zeros(MaxIter)
 
-    # Initialize search direction
-    sinit = -getObjFGrad(x[:, 0], functionID)
     s = np.zeros((n, MaxIter))
-    s[:, 0] = sinit
     grad = np.zeros((n, MaxIter))
 
-    for i in range(MaxIter - 1):
-
-        # Compute current gradient
-        grad_x = Fgrad(x[:, i])
-        grad[:,i] = grad_x 
-        
-        k = i
+    grad[:, 0] = getObjFGrad(x[:, 0], functionID)
+    s[:, 0] = -grad[:, 0]
+    for k in range(MaxIter - 1):
         if criterion in NEEDS_FVAL:
             # |f(x^k) - f(x^k-1)| needs two iterates, so it cannot be evaluated
             # at k = 0: x[:, -1] is the last (still empty) column, not x^-1.
@@ -133,36 +122,37 @@ def conjugate_gradients_Fletcher_Reeves(
         # FUNDAMENTAL REMARK (110)
         # the global convergence is submitted to a periodic re-initialization
         # -> after n iterations, go on from x^n with the direction -grad f(x^n)
-        if restart and i > 0 and i % restart == 0:
-            s[:, i] = -grad_x
+        if restart and k > 0 and k % restart == 0:
+            s[:, k] = -grad[:, k]
 
         # f2 is general C1 -> need for a Line Search method
         if functionID == 1:
-            alpha[i] = linear_search(x[:, i], s[:, i], grad[:, k], functionID, Epsilon, method="dichotomy")
+            alpha[k] = linear_search(x[:, k], s[:, k], grad[:, k], functionID, Epsilon, method="dichotomy")
             
         else:
-            alpha[i] = linear_search(x[:, i], s[:, i], grad[:, k], functionID, Epsilon)
+            alpha[k] = linear_search(x[:, k], s[:, k], grad[:, k], functionID, Epsilon)
 
         # Update point x (108)
-        x[:, i + 1] = x[:, i] + alpha[i] * s[:, i]
+        x[:, k + 1] = x[:, k] + alpha[k] * s[:, k]
 
-        # Compute next iterate gradient
-        next_grad_x = Fgrad(x[:, i + 1])
+        # the gradient of the new iterate, which the next pass reads back
+        grad[:, k + 1] = getObjFGrad(x[:, k + 1], functionID)
 
         # Fletcher and Reeves update rule (109)
-        beta[i] = (np.linalg.norm(next_grad_x) ** 2) / (np.linalg.norm(grad_x) ** 2)
+        beta[k] = (np.linalg.norm(grad[:, k + 1]) ** 2
+                   / np.linalg.norm(grad[:, k]) ** 2)
 
         # Update search direction (109)
-        s[:, i + 1] = -next_grad_x + beta[i] * s[:, i]
+        s[:, k + 1] = -grad[:, k + 1] + beta[k] * s[:, k]
 
     # If the for loop finished, MaxIter is exceeeded (otherwise break before)
     else:
         raise MaxIterError(
             f"conjugate gradients: MaxIter = {MaxIter} reached without satisfying "
             f"{criterion.__name__} < {Epsilon:g}, last ||grad|| = "
-            f"{np.linalg.norm(grad[:, i]):.3e}"
+            f"{np.linalg.norm(grad[:, k]):.3e}"
         )
-    return x[:, : i + 1]  # Remove the zero elements due to the initialization step
+    return x[:, : k + 1]  # Remove the zero elements due to the initialization step
 
 
 # H^0 of the quasi-Newton update (162)
