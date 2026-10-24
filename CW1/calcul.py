@@ -10,7 +10,7 @@ f2 = (
     - 9 * sp.sin(0.6 * y - 0.7 * x)
     + 3 * x
 )
-
+# Some lazy stuff to double check 
 for i, f in enumerate([f1, f2], start=1):
     grad = sp.Matrix([f.diff(x), f.diff(y)])
     hess = sp.hessian(f, (x, y))
