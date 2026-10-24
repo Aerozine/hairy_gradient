@@ -147,15 +147,12 @@ def crit_comb(n, functionID, MaxIter, eps) :
         
     
     plt.rcParams['axes.formatter.useoffset'] = False
-    plt.semilogx(eps, fct_c1 , color = 'darkgreen', label = 'Steepest Descent - comb', marker ='o')
-    plt.semilogx(eps, fct_c2 , color = 'blue', label ='Conj. Grad. - comb', marker = 's')
-    plt.semilogx(eps, fct_c3 , color = 'red', label ='BFGS - comb', marker = '^')
-    
     plt.axhline(fct_m1, color = 'lightgreen', label ='Steepest Descent - norm2')
     plt.axhline(fct_m2, color = 'lightblue', label ='Conj. Grad. - norm2')
     plt.axhline(fct_m3, color = 'lightcoral', label ='BFGS - norm2')
-    
-    #plt.loglog(eps, np.abs(fct_c23), color = 'c' , label = 'Crit 2 and Crit 3', marker = 'x')
+    plt.semilogx(eps, fct_c1 , color = 'darkgreen', label = 'Steepest Descent - comb', marker ='o')
+    plt.semilogx(eps, fct_c2 , color = 'blue', label ='Conj. Grad. - comb', marker = 's')
+    plt.semilogx(eps, fct_c3 , color = 'red', label ='BFGS - comb', marker = '^')
     plt.xlabel('Tolerance eps of crit 3 [-]', fontsize = 13)
     plt.ylabel('Function value [-]', fontsize = 13)
     plt.grid()
@@ -166,14 +163,12 @@ def crit_comb(n, functionID, MaxIter, eps) :
     
     
     plt.rcParams['axes.formatter.useoffset'] = False
-    plt.loglog(eps, nb_it_1 , color = 'darkgreen', label = 'Steepest Descent - comb', marker ='o')
-    plt.loglog(eps, nb_it_2 , color = 'blue', label ='Conj. Grad. - comb', marker = 's')
-    plt.loglog(eps, nb_it_3 , color = 'red', label ='BFGS - comb', marker = '^')
-    
     plt.axhline(it_m1, color = 'lightgreen', label ='Steepest Descent - norm2')
     plt.axhline(it_m2, color = 'lightblue', label ='Conj. Grad. - norm2')
     plt.axhline(it_m3, color = 'lightcoral', label ='BFGS - norm2')
-    
+    plt.loglog(eps, nb_it_1 , color = 'darkgreen', label = 'Steepest Descent - comb', marker ='o')
+    plt.loglog(eps, nb_it_2 , color = 'blue', label ='Conj. Grad. - comb', marker = 's')
+    plt.loglog(eps, nb_it_3 , color = 'red', label ='BFGS - comb', marker = '^')
     plt.xlabel('Tolerance eps of crit 3 [-]', fontsize = 13)
     plt.ylabel('Number of iterations [-]', fontsize = 13)
     plt.grid()
